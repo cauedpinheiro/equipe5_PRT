@@ -1,1 +1,0 @@
-{"name": "stdout", "output_type": "stream", "text": "escolaridade\nMedio          37292\nSuperior       34148\nFundamental    11295\nPos            11171\nNone            4801\nName: count, dtype: int64\n"}

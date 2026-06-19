@@ -1,1 +1,0 @@
-{"name": "stdout", "output_type": "stream", "text": "indicou_clientes\n0.0    76971\n1.0    13269\nNaN     4760\nName: count, dtype: int64\n"}

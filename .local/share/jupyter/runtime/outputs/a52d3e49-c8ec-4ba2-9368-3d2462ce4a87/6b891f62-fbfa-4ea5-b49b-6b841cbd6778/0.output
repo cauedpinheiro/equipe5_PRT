@@ -1,1 +1,0 @@
-{"name": "stdout", "output_type": "stream", "text": "Aplicando One-Hot Encoding na tabela 'df_mkt_final'...\n\n✅ A coluna original 'tipo_veiculo' foi transformada com sucesso!\nNovas colunas binárias criadas:\n['veiculo_Carro', 'veiculo_Moto', 'veiculo_NaN', 'veiculo_Pickup', 'veiculo_SUV', 'veiculo_Van'] \n\n"}
