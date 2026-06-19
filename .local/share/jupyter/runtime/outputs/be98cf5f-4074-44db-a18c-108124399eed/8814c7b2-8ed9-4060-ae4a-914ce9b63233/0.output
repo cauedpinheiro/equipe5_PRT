@@ -1,1 +1,0 @@
-{"name": "stdout", "output_type": "stream", "text": "tem_filhos\n1        8402\nsim      8307\nSim      8289\ntrue     8228\nS        8172\nSIM      8172\nfalse    7477\nNao      7467\n0        7460\nNAO      7429\nN        7339\nnao      7313\nNaN      2504\n          503\n#N/D      501\n?         501\n          470\n-         466\nName: count, dtype: int64\n"}

@@ -1,1 +1,0 @@
-{"name": "stdout", "output_type": "stream", "text": "Index(['id_cliente', 'idade', 'data_nascimento', 'genero', 'estado_civil',\n       'tem_filhos', 'qtd_dependentes', 'escolaridade', 'renda_anual',\n       'possui_imovel', 'valor_imovel', 'tempo_residencia_anos'],\n      dtype='object')\n"}

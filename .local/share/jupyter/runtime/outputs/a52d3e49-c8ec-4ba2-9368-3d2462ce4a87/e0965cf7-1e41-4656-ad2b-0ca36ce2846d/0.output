@@ -1,1 +1,0 @@
-{"name": "stdout", "output_type": "stream", "text": "Aplicando One-Hot Encoding na coluna 'regiao_vendas'...\n\n✅ A coluna original 'regiao_vendas' foi transformada com sucesso!\nNovas colunas binárias criadas:\n['regiao_Centro', 'regiao_Centro-Oeste', 'regiao_NaN', 'regiao_Nordeste', 'regiao_Oeste', 'regiao_Regiao Oeste', 'regiao_Sudeste', 'regiao_Sul'] \n\n"}

@@ -1,1 +1,0 @@
-{"name": "stdout", "output_type": "stream", "text": "Iniciando limpeza e transformação de 'metodo_pagamento'...\n\n✅ Sujeiras removidas! Valores únicos que sobraram no segmento:\n['boleto' 'credito' 'debito' 'pix' 'NaN'] \n\n✅ Coluna transformada em binários com sucesso!\n"}

@@ -1,1 +1,0 @@
-{"name": "stdout", "output_type": "stream", "text": "desconto_aplicado_pct\nNone     4645\n0.049     709\n0.048     691\n0.0       680\n0.046     679\n         ... \n0.243       7\n0.246       7\n0.248       5\n0.247       4\n0.249       3\nName: count, Length: 252, dtype: int64\n"}

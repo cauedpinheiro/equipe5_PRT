@@ -1,1 +1,0 @@
-{"data": {"text/plain": "metodo_pagamento\ndebito     33893\nboleto     22149\ncredito    19750\npix        13290\nName: count, dtype: int64"}, "execution_count": 30, "metadata": {}, "output_type": "execute_result"}
