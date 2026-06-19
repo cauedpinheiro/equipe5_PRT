@@ -1,0 +1,1 @@
+{"output_type": "stream", "text": "Qtd de outliers: 2479\nrenda_anual\n-       526\n#N/D    521\n        509\n        474\n?       449\nName: count, dtype: int64\n", "name": "stdout"}

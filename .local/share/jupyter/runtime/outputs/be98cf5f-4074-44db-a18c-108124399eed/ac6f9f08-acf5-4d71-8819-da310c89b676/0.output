@@ -1,0 +1,1 @@
+{"name": "stdout", "output_type": "stream", "text": "metodo_pagamento\ndebito     33893\nboleto     22149\ncredito    19750\npix        13290\nNone        4656\nName: count, dtype: int64\n"}

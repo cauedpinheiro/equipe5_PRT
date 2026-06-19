@@ -1,0 +1,1 @@
+{"name": "stdout", "output_type": "stream", "text": "Filtrando a base de dados para seleção de variáveis (Feature Selection)...\nBase pronta para o Machine Learning!\nFicámos com 83608 linhas e 17 colunas de alta relevância.\n"}

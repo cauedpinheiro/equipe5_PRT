@@ -1,0 +1,1 @@
+{"name": "stdout", "output_type": "stream", "text": "Transformando 'canal_preferencial_contato' em binários na tabela de Sinistros...\n\n✅ Sucesso! As colunas binárias de canal de contato foram criadas.\n\nNovas colunas geradas:\n['canal_Carta', 'canal_Email', 'canal_Nao Informado', 'canal_Telefone', 'canal_WhatsApp'] \n\n"}

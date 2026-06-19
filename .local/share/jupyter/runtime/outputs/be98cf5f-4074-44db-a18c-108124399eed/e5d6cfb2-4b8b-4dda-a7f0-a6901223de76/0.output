@@ -1,0 +1,1 @@
+{"name": "stdout", "output_type": "stream", "text": "canal_aquisicao\nAgente       32094\nDigital      26733\nTelefone     17739\nIndicacao    12380\nNone          4792\nName: count, dtype: int64\n"}

@@ -1,0 +1,13 @@
+{
+  "shell_port": 43391,
+  "iopub_port": 45489,
+  "stdin_port": 60345,
+  "control_port": 37935,
+  "hb_port": 40239,
+  "ip": "127.0.0.1",
+  "key": "4bdf70ee-ca5e9d1b5bfc7ec922b43bfd",
+  "transport": "tcp",
+  "signature_scheme": "hmac-sha256",
+  "kernel_name": "python3",
+  "jupyter_session": "/home/sagemaker-user/trat_caue.ipynb"
+}

@@ -1,0 +1,1 @@
+{"name": "stdout", "output_type": "stream", "text": "tem_filhos\nsim     49428\nnao     44349\nNone     4930\nName: count, dtype: int64\n"}

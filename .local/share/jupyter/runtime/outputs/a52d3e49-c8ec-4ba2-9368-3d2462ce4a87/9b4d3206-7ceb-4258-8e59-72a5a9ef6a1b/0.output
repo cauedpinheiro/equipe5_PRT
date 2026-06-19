@@ -1,0 +1,1 @@
+{"name": "stdout", "output_type": "stream", "text": "Limpando sujeiras na coluna 'regiao_vendas'...\n\nValores únicos que ficaram na coluna:\n['Sul' 'Sudeste' 'Centro-Oeste' 'NaN' 'Regiao Oeste' 'Nordeste' 'Centro'\n 'Oeste']\n"}

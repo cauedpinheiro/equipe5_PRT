@@ -1,0 +1,1 @@
+{"output_type": "stream", "text": "Transformando 'segmento_marketing' em binários na tabela de marketing...\n\n✅ Sucesso! As colunas binárias foram criadas.\n\nNovas colunas geradas:\n['segmento_', 'segmento_#N/D', 'segmento_-', 'segmento_?', 'segmento_Bronze', 'segmento_Diamante', 'segmento_NaN', 'segmento_Ouro', 'segmento_Prata'] \n\n", "name": "stdout"}

@@ -1,0 +1,1 @@
+{"name": "stdout", "output_type": "stream", "text": "     id_cliente  churned\n0  221300860396        1\n1  221302348370        0\n2  221300339032        0\n3  221302967097        0\n4  221303214646        0\n"}

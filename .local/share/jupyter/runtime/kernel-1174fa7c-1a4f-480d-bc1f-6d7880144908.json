@@ -1,0 +1,13 @@
+{
+  "shell_port": 44325,
+  "iopub_port": 35549,
+  "stdin_port": 42709,
+  "control_port": 45403,
+  "hb_port": 54651,
+  "ip": "127.0.0.1",
+  "key": "a7f2116f-a33c4635501d7b3271672867",
+  "transport": "tcp",
+  "signature_scheme": "hmac-sha256",
+  "kernel_name": "python3",
+  "jupyter_session": "/home/sagemaker-user/cadastro_clientes_trat.ipynb"
+}
