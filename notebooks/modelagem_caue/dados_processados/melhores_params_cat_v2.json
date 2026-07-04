@@ -1,0 +1,8 @@
+{
+  "learning_rate": 0.08,
+  "l2_leaf_reg": 5,
+  "depth": 4,
+  "border_count": 64,
+  "bootstrap_type": "MVS",
+  "boosting_type": "Plain"
+}
