@@ -102,13 +102,29 @@ Chave de junção: `cod_individuo` (normalizado removendo prefixo `IND-` e sufix
 
 ---
 
-## 4. Clusterização
+## 4. Clusterização e segmentação de clientes (entrega para o cliente)
 
-`notebooks/clusterização/clusterizacao_clientes.ipynb` — segmentação K-Means dos clientes usando 26
-features correlacionadas com churn (|corr| > 0.01). Método do cotovelo + silhueta apontam para
-**K=6**. Cruza os clusters com a taxa de churn para dar um perfil de risco por segmento. Essa
-lógica é reproduzida (com ajustes) dentro do `notebooks/modelagem_caue/00_preparacao_dados.ipynb`
-para gerar a feature `cluster` usada nos modelos.
+`notebooks/clusterização/clusterizacao_clientes.ipynb` — segmentação dos clientes por perfil, com a
+**taxa média de churn de cada grupo**, para orientar em quais perfis focar a retenção. Carrega os
+clusters já calculados por `00_preparacao_dados.ipynb` (K-Means, **K=6**, 22 features) — ou seja, os
+mesmos clusters usados internamente pelo modelo final (`25_modelo_final_vencedor.ipynb`), não um
+K-Means recalculado à parte. Isso garante que a segmentação de negócio e a feature do modelo preditivo
+contam a mesma história.
+
+Resumo dos 6 segmentos (ordenados do maior para o menor risco):
+
+| Cluster | % da base | Taxa de churn | Perfil |
+|---|---|---|---|
+| 3 | 29,1% | **21,7%** | Clientes mais novos, poucos produtos, cobertura básica, renda mais baixa — maior grupo e maior risco |
+| 5 | 5,6% | **18,5%** | Menor satisfação (NPS) e menor índice de relacionamento de todos os clusters |
+| 1 | 19,6% | **16,9%** | Perfil parecido ao 3 (cobertura básica, poucos produtos), um pouco mais estabelecido |
+| 0 | 1,6% | 10,1% | Grupo pequeno e misto |
+| 4 | 22,9% | 3,1% | Clientes fiéis, cobertura padrão, mais produtos, renda alta |
+| 2 | 21,2% | 2,6% | Quase 100% cobertura premium, clientes mais antigos, mais produtos e maior renda da base |
+
+**Insight para retenção:** clusters 3, 5 e 1 somam 54,3% da base e concentram todo o risco acima da
+média — todos com cobertura básica/poucos produtos/relacionamento mais curto. Clusters 2 e 4 (44% da
+base) são o oposto: antigos, múltiplos produtos, churn abaixo de 3,1%.
 
 ---
 

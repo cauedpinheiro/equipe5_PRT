@@ -69,9 +69,11 @@ INVALID_VALUES = {"?", "null", "NULL", "#N/D", "n/a", "N/A", "na", "NA", "none",
 Open any notebook in JupyterLab. Each notebook is standalone — it reads from `../bases/tabelas_brutas/` or `../bases/tabelas_tratadas/` using relative paths from its own directory.
 
 To re-run the full pipeline in order:
-1. `notebooks/bases/extração_S3.ipynb` — extract raw data from S3
-2. `notebooks/Analise_descritiva/cadastro_clientes_trat.ipynb` — clean `cadastro_clientes`
-3. `notebooks/Analise_descritiva/trat_caue.ipynb` — clean `contratos_apolices`
-4. `notebooks/Analise_descritiva/trat_rodrigo.ipynb` — clean remaining tables
-5. `notebooks/bases/tabelas_unificadas/Untitled.ipynb` — merge all tables
-6. `notebooks/Analise_exploratoria/Analise_exp.ipynb` — EDA and churn correlation analysis
+1. `notebooks/Analise_descritiva/cadastro_clientes_trat.ipynb` — clean `cadastro_clientes`
+2. `notebooks/Analise_descritiva/trat_caue.ipynb` — clean `contratos_apolices`
+3. `notebooks/Analise_descritiva/trat_rodrigo.ipynb` — clean remaining tables
+4. `notebooks/bases/tabelas_unificadas/unificacao_base_tratada.ipynb` — merge all tables
+5. `notebooks/Analise_exploratoria/Analise_exp.ipynb` — EDA and churn correlation analysis
+
+See `README.md` at the repo root for the full modeling pipeline (`notebooks/modelagem_caue/`),
+customer segmentation (`notebooks/clusterização/`), and the final model.
