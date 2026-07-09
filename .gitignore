@@ -1,2 +1,6 @@
 .venv/
-.venv/
+
+# MLflow local tracking server (banco/artefatos rodam só na máquina de cada um)
+notebooks/modelagem_caue/mlflow_local/
+mlruns/
+mlartifacts/

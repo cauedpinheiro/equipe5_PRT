@@ -1,5 +1,5 @@
 {
-  "usa_features_novas": true,
+  "usa_features_novas": false,
   "colunas": [
     "num_apolices_ativas",
     "tempo_cliente_dias",
@@ -68,17 +68,6 @@
     "regiao_Nordeste",
     "regiao_Sudeste",
     "regiao_Sul",
-    "cluster",
-    "premio_por_cobertura",
-    "franquia_pct_premio",
-    "renda_por_dependente",
-    "valor_imovel_por_renda",
-    "apolices_por_produto",
-    "reclamacoes_por_sinistro",
-    "ligacoes_por_sinistro",
-    "engajamento_x_satisfacao",
-    "desconto_x_tempo_cliente",
-    "relacionamento_por_ano_cliente",
-    "contato_menos_login"
+    "cluster"
   ]
 }

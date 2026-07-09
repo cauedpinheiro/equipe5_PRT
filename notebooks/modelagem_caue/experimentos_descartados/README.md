@@ -23,7 +23,7 @@ perder tempo tentando de novo algo que já foi testado e não funcionou.
 | `24_ensemble_final.ipynb` | "Final" de uma rodada anterior — média de 5 modelos (incluía boosting) | Kaggle 0.7396 — superado pelo `25` (só RF + Extra Trees, sem boosting) |
 
 **Achado central que motivou boa parte dessas tentativas:** existe um *distribution shift* real
-entre a base de treino e a base de teste do Kaggle (ver `07_validacao_adversarial.ipynb`, mantido na
+entre a base de treino e a base de teste do Kaggle (ver `08_validacao_adversarial.ipynb`, mantido na
 pasta principal). A maior parte destes experimentos tentou atacar esse shift diretamente e não
 conseguiu — o que funcionou, no fim, foi trocar boosting por modelos de bagging mais aleatorizados
 (ver `25_modelo_final_vencedor.ipynb`).

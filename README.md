@@ -106,25 +106,34 @@ Chave de junção: `cod_individuo` (normalizado removendo prefixo `IND-` e sufix
 
 `notebooks/clusterização/clusterizacao_clientes.ipynb` — segmentação dos clientes por perfil, com a
 **taxa média de churn de cada grupo**, para orientar em quais perfis focar a retenção. Carrega os
-clusters já calculados por `00_preparacao_dados.ipynb` (K-Means, **K=6**, 22 features) — ou seja, os
+clusters já calculados por `00_preparacao_dados.ipynb` (K-Means, **K=7**, 22 features) — ou seja, os
 mesmos clusters usados internamente pelo modelo final (`25_modelo_final_vencedor.ipynb`), não um
 K-Means recalculado à parte. Isso garante que a segmentação de negócio e a feature do modelo preditivo
 contam a mesma história.
 
-Resumo dos 6 segmentos (ordenados do maior para o menor risco):
+> **K=7, não K=6:** o valor original (K=6) foi escolhido por bom senso de negócio. Em 2026-07-09,
+> depois de sermos superados no Kaggle, testamos sistematicamente vários K contra o score real do
+> modelo — K=7 generalizou melhor (recuperou o 1º lugar), mesmo com cotovelo/silhueta praticamente
+> idênticos a K=6. Ver seção 3 do notebook de clusterização para os gráficos e a explicação completa.
+
+Resumo dos 7 segmentos (ordenados do maior para o menor risco):
 
 | Cluster | % da base | Taxa de churn | Perfil |
 |---|---|---|---|
-| 3 | 29,1% | **21,7%** | Clientes mais novos, poucos produtos, cobertura básica, renda mais baixa — maior grupo e maior risco |
-| 5 | 5,6% | **18,5%** | Menor satisfação (NPS) e menor índice de relacionamento de todos os clusters |
-| 1 | 19,6% | **16,9%** | Perfil parecido ao 3 (cobertura básica, poucos produtos), um pouco mais estabelecido |
-| 0 | 1,6% | 10,1% | Grupo pequeno e misto |
-| 4 | 22,9% | 3,1% | Clientes fiéis, cobertura padrão, mais produtos, renda alta |
-| 2 | 21,2% | 2,6% | Quase 100% cobertura premium, clientes mais antigos, mais produtos e maior renda da base |
+| 0 | 28,7% | **22,08%** | Mais novos, muitas apólices concentradas em poucos produtos, cobertura básica, renda mais baixa — maior grupo e maior risco |
+| 6 | 0,7% | 21,57% | Parecido com o 0, mas nenhum cliente possui imóvel — grupo pequeno, monitorar redundância com o 0 |
+| 4 | 5,6% | 18,26% | Menor satisfação/relacionamento de todos + **100% paga em atraso** — atrito já instalado, não imaturidade |
+| 2 | 16,1% | 18,04% | Transição entre o cluster 0 e os saudáveis — cobertura ainda majoritariamente básica |
+| 1 | 19,2% | 4,42% | Cobertura padrão, bom tempo de casa, renda alta, baixo risco |
+| 5 | 13,3% | 2,90% | Premium/padrão misto, maior renda da base, **quase sem filhos/dependentes** |
+| 3 | 16,4% | 2,78% | 91,5% cobertura premium, renda alta, **com família** (100% têm filhos) |
 
-**Insight para retenção:** clusters 3, 5 e 1 somam 54,3% da base e concentram todo o risco acima da
-média — todos com cobertura básica/poucos produtos/relacionamento mais curto. Clusters 2 e 4 (44% da
-base) são o oposto: antigos, múltiplos produtos, churn abaixo de 3,1%.
+**Insight para retenção:** clusters 0, 6, 4 e 2 somam 51,1% da base e concentram o risco acima da
+média — mas por motivos diferentes: 0/6/2 são clientes "rasos" (poucos produtos, novos), enquanto o
+4 é sobre atrito já instalado (insatisfação + inadimplência), pedindo recuperação de relacionamento
+em vez de cross-sell. Os clusters saudáveis (1, 3, 5 — 48,9% da base) se dividem por perfil familiar
+dentro do segmento premium (3 = famílias, 5 = sem filhos) — pode orientar qual produto complementar
+oferecer a cada um.
 
 ---
 
@@ -138,11 +147,11 @@ pensados para rodar em sequência (cada um consome arquivos gerados pelo anterio
 
 | Notebook | Função |
 |---|---|
-| `00_preparacao_dados.ipynb` | Carrega `Base_Unificada_Outer.csv` (treino) e `Base_Unificada_Kaggle_Outer.csv` (teste); alinha nomes de coluna entre as duas bases; **corrige um bug de encoding em `regiao`** (4 colunas que representavam a mesma região virando 1); remove leakage/multicolinearidade; faz o split treino/validação **antes** de ajustar qualquer transformação (evita vazamento); ajusta K-Means (K=6) só no treino; imputa nulos. Gera `train_model_ready.csv`, `val_model_ready.csv`, `kaggle_model_ready.csv`. |
+| `00_preparacao_dados.ipynb` | Carrega `Base_Unificada_Outer.csv` (treino) e `Base_Unificada_Kaggle_Outer.csv` (teste); alinha nomes de coluna entre as duas bases; **corrige um bug de encoding em `regiao`** (4 colunas que representavam a mesma região virando 1); remove leakage/multicolinearidade; faz o split treino/validação **antes** de ajustar qualquer transformação (evita vazamento); ajusta K-Means (**K=7**) só no treino; imputa nulos. Gera `train_model_ready.csv`, `val_model_ready.csv`, `kaggle_model_ready.csv`. |
 | `09_experimento_shift_features.ipynb` | Testa remover as features mais associadas ao *distribution shift* (ver 5.3). Decide manter as fortes em churn e remover 4 fracas+shift (`valor_premio_anual`, `km_anual_estimado`, `tempo_medio_resposta_dias`, `ano_veiculo`). |
 | `10_feature_engineering.ipynb` | Cria 11 features derivadas (razões/interações, ex. `apolices_por_produto`, `desconto_x_tempo_cliente`). Junto com o `09`, gera o conjunto **`_v2`**: `train_model_ready_v2.csv`, `val_model_ready_v2.csv`, `kaggle_model_ready_v2.csv` — **é este conjunto que alimenta o modelo final**. |
 
-### 5.2 Os 5 modelos pedidos + comparação
+### 5.2 Os 6 modelos treinados + comparação
 
 | Notebook | Modelo | AUC-ROC validação |
 |---|---|---|
@@ -151,14 +160,17 @@ pensados para rodar em sequência (cada um consome arquivos gerados pelo anterio
 | `03_xgboost_proba.ipynb` | XGBoost | 0.8240 |
 | `04_lightgbm_proba.ipynb` | LightGBM | 0.8238 |
 | `05_catboost_proba.ipynb` | CatBoost | 0.8254 |
-| `06_comparacao_final.ipynb` | Compara os 5 (curva ROC, tabela) | — |
+| `06_extra_trees_proba.ipynb` | Extra Trees | 0.8062 |
+| `07_comparacao_final.ipynb` | Compara os 6 (curva ROC, tabela) — só entre eles, não é a recomendação de produção | — |
 
 Cada um desses gera `submissions/submission_<modelo>.csv` (colunas `Id`, `probabilidade_churn`) e
-salva as probabilidades de validação em `dados_processados/proba_val/<modelo>.csv`.
+salva as probabilidades de validação em `dados_processados/proba_val/<modelo>.csv`. Sozinho, o
+Extra Trees é o 2º pior modelo (0.8062) — seu valor só aparece combinado com o Random Forest no
+ensemble final (seção 5.4).
 
 ### 5.3 Diagnóstico central: *distribution shift*
 
-`07_validacao_adversarial.ipynb` — **o insight mais importante do projeto**. Treina um classificador
+`08_validacao_adversarial.ipynb` — **o insight mais importante do projeto**. Treina um classificador
 para prever "essa linha é do treino ou do Kaggle?" usando só as features. Resultado: AUC ≈ 0.72,
 ou seja, treino e teste têm uma distribuição diferente o suficiente pra um modelo perceber — mesmo
 que a média/desvio-padrão de cada feature isolada pareça igual (checado feature a feature). Isso
@@ -172,14 +184,29 @@ por modelos de bagging mais aleatorizados (seção 5.4).
 ### 5.4 Modelo final
 
 **`25_modelo_final_vencedor.ipynb`** — Ensemble **Random Forest + Extra Trees** (média 50/50, cada um
-com bagging 5-fold sobre as features `_v2`). Self-contido: não depende de nenhum notebook arquivado.
+com bagging 5-fold sobre as features `_v2`, K-Means com **K=7**). Self-contido: não depende de
+nenhum notebook arquivado.
 
 | Modelo | AUC-ROC validação (out-of-fold) | Score Kaggle público |
 |---|---|---|
 | CatBoost tunado sozinho | 0.8263 | 0.7370 |
 | Bagging 5-fold CatBoost | 0.8259 | 0.7383 |
 | Stacking (7 modelos, meta-modelo) | 0.8257 | 0.7395 |
-| **Random Forest + Extra Trees (50/50)** | 0.8199 | **0.7456** |
+| Random Forest + Extra Trees (50/50), K=6 | 0.8199 | 0.7456 |
+| **Random Forest + Extra Trees (50/50), K=7** | 0.8201 | **0.7465 — vigente** |
+
+A mudança de K=6 para K=7 veio de um teste sistemático (K=3,4,5,6,7,8,10,12) feito em 2026-07-09
+depois de perdermos a liderança da competição — nunca tínhamos testado outros valores de K antes.
+K=7 generaliza melhor para o Kaggle apesar do AUC de validação praticamente idêntico a K=6 — mais
+uma confirmação de que a métrica de validação interna não prevê bem o desempenho real aqui (ver
+seção 5.3).
+
+> **Nota de reprodutibilidade:** reexecutar `25_modelo_final_vencedor.ipynb` hoje reproduz um
+> resultado um pouco pior (~0.745) do que o oficial (0.7465), porque o `pandas` foi rebaixado de
+> 3.0.3 para 2.3.3 como efeito colateral da instalação do MLflow (seção 6) — mesmo com
+> `random_state` fixo, isso muda ligeiramente o resultado do bagging. A submissão oficial em
+> `submissions/submission_FINAL_vencedor.csv` foi preservada da execução original comprovada no
+> Kaggle, não da reexecução mais recente.
 
 Contraintuitivo: o ensemble final tem AUC de validação **mais baixo** que o CatBoost sozinho, mas
 generaliza melhor pro Kaggle. Hipótese (ver notebook `25` para detalhes): boosting ajusta resíduos
@@ -209,7 +236,34 @@ modelagem_caue/
 
 ---
 
-## 6. Submissão no Kaggle
+## 6. MLflow (SageMaker)
+
+Requisito do projeto: os modelos rodam em MLflow. Os notebooks `00`, `01`-`06` e `25` logam
+parâmetros, métricas (AUC-ROC) e o modelo treinado no MLflow — tracking server **`equipe5`** do
+SageMaker Studio (ARN `arn:aws:sagemaker:us-east-2:906513713169:mlflow-tracking-server/equipe5`).
+
+- **Tracking URI:** cada notebook lê `os.environ.get("MLFLOW_TRACKING_URI", "<ARN do SageMaker>")`
+  — ou seja, usa o SageMaker por padrão, mas pode ser sobrescrito por variável de ambiente (útil
+  pra testar local sem depender de credenciais AWS).
+- **Model Registry:** o notebook `25` registra o ensemble final como **`churn-prt-final`** — um
+  wrapper `mlflow.pyfunc.PythonModel` que combina Random Forest + Extra Trees numa única chamada
+  `predict()`, servível como um artefato só (necessário pra um endpoint de inferência).
+- **Rodando local (sem AWS):** suba um servidor local (`mlflow server --backend-store-uri
+  sqlite:///mlflow.db --default-artifact-root ./mlartifacts --host 127.0.0.1 --port 5000`) e defina
+  `MLFLOW_TRACKING_URI=http://127.0.0.1:5000` antes de executar os notebooks.
+- **Rodando no SageMaker Studio:** dando `git pull` no ambiente Studio, a *execution role* do domínio
+  já deve ter permissão para o tracking server `equipe5` — não precisa trocar nada no código.
+
+> **Pacote `mlflow`:** requer Python compatível (a versão 3.14+ do MLflow tem um bug conhecido de
+> import em Python 3.14 muito recente — usamos `mlflow==3.12.0` como contorno). Instalar também
+> `sagemaker-mlflow` (plugin necessário pra resolver o ARN como tracking URI). **Atenção:** instalar
+> o pacote `sagemaker` completo pode rebaixar o `pandas` (viu uma dependência transitiva puxar
+> `pandas<3`) — isso já causou uma pequena diferença de reprodutibilidade no modelo final (seção 5.4).
+> Se for reinstalar, confira a versão do pandas depois (`pip show pandas`).
+
+---
+
+## 7. Submissão no Kaggle
 
 Competição privada `poli-junior`. Autenticação via `kaggle.json`/token de API (não versionado).
 Comando de envio:
@@ -222,10 +276,15 @@ e `probabilidade_churn`.
 
 ---
 
-## 7. Próximos passos sugeridos
+## 8. Próximos passos sugeridos
 
-- [ ] Tunar hiperparâmetro do Random Forest / Extra Trees do modelo final (o `11_tuning_hiperparametros.ipynb`,
-  arquivado, tunou CatBoost/XGBoost/LightGBM — os dois modelos do ensemble final ainda usam parâmetros
-  não-tunados).
+- [x] ~~Tunar hiperparâmetro do Random Forest / Extra Trees do modelo final~~ — feito em 2026-07-09
+  (`RandomizedSearchCV`). Resultado: AUC de validação melhorou, mas o score no Kaggle **piorou**
+  (0.7465 → 0.7394) — mesma lição do shift, agora confirmada dentro da própria família bagging.
+  Parâmetros tunados ficaram em `dados_processados/melhores_params_rf_et.json`, não usados em produção.
+- [ ] Investigar se o cluster 6 (K=7, só 0,7% da base) é redundante com o cluster 0 — ver seção 4
+  do README e seção 8 do notebook de clusterização.
+- [ ] Fixar as versões de `mlflow`/`pandas`/`scikit-learn` em `requirements.txt` — a reinstalação do
+  MLflow rebaixou o pandas e mudou levemente a reprodutibilidade do modelo final (seção 6).
 - [ ] Investigar com mais profundidade por que boosting generaliza pior que bagging nesta base — pode
   virar um argumento para a PRT Seguros sobre como montar a próxima base de treino/teste.
