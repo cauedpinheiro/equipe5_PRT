@@ -142,19 +142,21 @@ if not st.session_state['logado']:
                 
         st.markdown("<h2 style='text-align: center;'>Acesso ao Sistema</h2>", unsafe_allow_html=True)
         with st.form("login_form"):
-            usuario = st.text_input("Utilizador")
-            senha = st.text_input("Palavra-passe", type="password")
+            usuario = st.text_input("Usuário")
+            senha = st.text_input("Senha", type="password")
             btn_entrar = st.form_submit_button("Conectar ao Hub")
-            if btn_entrar and usuario != "": 
-                st.session_state['logado'] = True
-                st.rerun() 
+            
+            if btn_entrar:
+                # Validação estrita das credenciais
+                if usuario == "prt_admin" and senha == "PRT2026": 
+                    st.session_state['logado'] = True
+                    st.rerun() 
+                elif usuario != "" or senha != "":
+                    st.error("🚫 Usuário ou senha incorretos. Tente novamente.")
 else:
     # Botão Sair da Conta 
     col_sair, _ = st.columns([1.5, 8.5])
-    with col_sair:
-        st.write("<br>", unsafe_allow_html=True)
-        st.markdown("<style>div[data-testid='stButton'] button:contains('Sair da Conta') { border: 1px solid #4CAF50 !important; background: rgba(25,40,79,0.8) !important; color: #4CAF50 !important; border-radius: 8px !important; box-shadow: none !important; width: 100%; margin-top: 0px !important; padding: 8px !important; } div[data-testid='stButton'] button:contains('Sair da Conta'):hover { background: #4CAF50 !important; color: #19284F !important; }</style>", unsafe_allow_html=True)
-        if st.button("Sair da Conta"): st.session_state['logado'] = False; st.session_state['pagina'] = "Home"; st.rerun()
+# ... (o resto do seu código continua igual a partir daqui)
 
     # ==========================================
     # TELA 0: HOME
