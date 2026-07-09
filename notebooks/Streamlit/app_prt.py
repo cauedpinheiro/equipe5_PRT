@@ -480,27 +480,21 @@ else:
             else:
                 df_modelo = st.session_state['df_res']
                 total_clientes = len(df_modelo)
-                
-                # Distribuição predita dinâmica baseada nos dados recém-enviados
-                qtd_churn = len(df_modelo[df_modelo['Probabilidade (%)'] >= 50.0])
-                qtd_retidos = total_clientes - qtd_churn
-                taxa_churn_predita = (qtd_churn / total_clientes) * 100 if total_clientes > 0 else 0
 
                 # ==========================================================
                 # 🚨 INSIRA AQUI OS VALORES REAIS DO SEU MODELO DO VS CODE 🚨
                 # ==========================================================
-                acc_real = 82.5    # Substitua pela sua Acurácia real (ex: 82.5)
+                acc_real = 82.5    # Substitua pela sua Acurácia real
                 rec_real = 79.8    # Substitua pelo seu Recall real
                 f1_real = 81.1     # Substitua pelo seu F1-Score real
-                auc_real = 0.81    # Substitua pelo seu AUC-ROC real (ex: 0.81)
+                auc_real = 0.81    # Substitua pelo seu AUC-ROC real
 
-                st.markdown("<h1 style='text-align: center; margin-top: -10px;'>📊 Desempenho e Vetores de Decisão do Modelo</h1>", unsafe_allow_html=True)
-                st.markdown(f"<p style='text-align: center; font-size: 1.1rem; margin-bottom: 30px; color: #A0AABF;'>Métricas reais de eficiência da IA aplicadas ao lote de <b>{total_clientes:,}</b> clientes processados.</p>", unsafe_allow_html=True)
+                st.markdown("<h1 style='text-align: center; margin-top: -10px;'>📊 Desempenho do Modelo</h1>", unsafe_allow_html=True)
 
                 # ---------------------------------------------------------
-                # SEÇÃO 1: MÉTRICAS DE EFICIÊNCIA DO MODELO (Valores Reais Fixos)
+                # SEÇÃO 1: MÉTRICAS DE EFICIÊNCIA DO MODELO
                 # ---------------------------------------------------------
-                st.markdown("### 🎯 Eficiência Preditiva (Modelo Final)")
+                st.markdown("### 🎯 Eficiência Preditiva")
                 
                 col_m1, col_m2, col_m3, col_m4 = st.columns(4)
                 
@@ -524,12 +518,12 @@ else:
                 st.divider()
 
                 # ---------------------------------------------------------
-                # SEÇÃO 2: GRÁFICOS DE FEATURE IMPORTANCE E PREDIÇÃO
+                # SEÇÃO 2: GRÁFICOS DE FEATURE IMPORTANCE E CURVA DE GANHO
                 # ---------------------------------------------------------
                 col_graf1, col_graf2 = st.columns(2, gap="large")
                 
                 with col_graf1:
-                    st.markdown("### ⚖️ Pesos e Coeficientes (Feature Importance)")
+                    st.markdown("### ⚖️ Importância de cada Feature")
                     st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Impacto real de cada variável segundo o treinamento do modelo.</p>", unsafe_allow_html=True)
                     
                     # ==========================================================
@@ -544,7 +538,7 @@ else:
                             "Atraso Pagamento (Dias)", 
                             "Idade"
                         ],
-                        "Impacto": [0.35, 0.22, 0.18, 0.12, 0.08, 0.05] # Modifique estes números pelos resultados do seu Feature Importance
+                        "Impacto": [0.35, 0.22, 0.18, 0.12, 0.08, 0.05] 
                     }).sort_values(by="Impacto", ascending=True)
 
                     fig_importancia = px.bar(
@@ -566,34 +560,50 @@ else:
                     st.plotly_chart(fig_importancia, use_container_width=True, config={'displayModeBar': False})
 
                 with col_graf2:
-                    st.markdown("### 📉 Distribuição Predita de Risco (Lote Atual)")
-                    st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Projeção de evasão calculada pela IA para a base enviada.</p>", unsafe_allow_html=True)
+                    st.markdown("### 📈 Curva de Ganho Acumulado")
+                    st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Eficiência na captura de Churn vs. Volume da base contatada.</p>", unsafe_allow_html=True)
                     
-                    df_churn_dist = pd.DataFrame({
-                        "Status": ["Retidos (Projetado)", "Churn (Projetado)"],
-                        "Quantidade": [qtd_retidos, qtd_churn]
+                    # ==========================================================
+                    # 🚨 INSIRA AQUI OS DADOS REAIS DA SUA CURVA DE GANHO (Eixo Y)
+                    # O "Modelo Predito" representa a porcentagem de churns encontrados
+                    # ==========================================================
+                    df_gains = pd.DataFrame({
+                        "% da Base Abordada": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+                        "Modelo Predito": [0, 45, 72, 86, 93, 97, 99, 100, 100, 100, 100], 
+                        "Aleatório (Baseline)": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
                     })
+
+                    fig_gains = go.Figure()
                     
-                    fig_dist = go.Figure(data=[go.Pie(
-                        labels=df_churn_dist['Status'], 
-                        values=df_churn_dist['Quantidade'], 
-                        hole=.6,
-                        marker_colors=['#2ecc71', '#e74c3c']
-                    )])
+                    # Linha do Modelo
+                    fig_gains.add_trace(go.Scatter(
+                        x=df_gains["% da Base Abordada"], 
+                        y=df_gains["Modelo Predito"],
+                        mode='lines+markers',
+                        name='Modelo PRT',
+                        line=dict(color='#2ecc71', width=3),
+                        marker=dict(size=6, color='#2ecc71')
+                    ))
                     
-                    fig_dist.update_layout(
+                    # Linha Aleatória (Baseline)
+                    fig_gains.add_trace(go.Scatter(
+                        x=df_gains["% da Base Abordada"], 
+                        y=df_gains["Aleatório (Baseline)"],
+                        mode='lines',
+                        name='Abordagem Aleatória',
+                        line=dict(color='#e74c3c', width=2, dash='dash')
+                    ))
+
+                    fig_gains.update_layout(
                         paper_bgcolor='rgba(0,0,0,0)', 
                         plot_bgcolor='rgba(0,0,0,0)',
                         margin=dict(l=0, r=0, t=20, b=0),
-                        legend=dict(font=dict(color="#FFFFFF"), orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+                        xaxis=dict(title="% da Base Contatada", tickfont=dict(color='#FFFFFF'), titlefont=dict(color='#FFFFFF'), showgrid=True, gridcolor='rgba(255,255,255,0.1)'),
+                        yaxis=dict(title="% de Churn Capturado", tickfont=dict(color='#FFFFFF'), titlefont=dict(color='#FFFFFF'), showgrid=True, gridcolor='rgba(255,255,255,0.1)'),
+                        legend=dict(font=dict(color="#FFFFFF"), orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
                     )
-                    
-                    fig_dist.add_annotation(
-                        text=f"{taxa_churn_predita:.1f}%<br>Risco Churn", 
-                        x=0.5, y=0.5, font_size=16, font_color="#FFFFFF", showarrow=False
-                    )
-                    
-                    st.plotly_chart(fig_dist, use_container_width=True, config={'displayModeBar': False})
+
+                    st.plotly_chart(fig_gains, use_container_width=True, config={'displayModeBar': False})
 
         except Exception as e:
             st.error(f"Erro ao renderizar os gráficos desta página: {e}")
