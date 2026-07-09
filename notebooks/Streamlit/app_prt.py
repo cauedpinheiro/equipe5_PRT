@@ -89,27 +89,19 @@ st.markdown("""
 # 4. LÓGICA DO SIMULADOR E UNIFICAÇÃO (ATUALIZADA E BLINDADA)
 # ==========================================
 def padronizar_id(df):
-    # 1. Força todas as colunas a ficarem em minúsculas
     df.columns = [str(c).strip().lower() for c in df.columns]
     
-    # 2. Tenta encontrar a coluna de ID
     if 'id_cliente' in df.columns: 
         col_id = 'id_cliente'
     elif 'cod_individuo' in df.columns: 
         col_id = 'cod_individuo'
     else: 
-        col_id = df.columns[0] # Assume que a primeira coluna da esquerda é o ID
+        col_id = df.columns[0]
         
-    # 3. FORÇA PARA TEXTO E LIMPA DECIMAIS (Resolve o erro object vs float64)
     df['cod_individuo'] = df[col_id].astype(str)
-    
-    # Remove o ".0" no final caso o Pandas tenha lido como float (ex: 12345.0 -> 12345)
     df['cod_individuo'] = df['cod_individuo'].str.replace(r'\.0$', '', regex=True)
-    
-    # Remove o prefixo IND- e espaços em branco (ignora maiúsculas/minúsculas)
     df['cod_individuo'] = df['cod_individuo'].str.replace('ind-', '', case=False, regex=False).str.strip()
     
-    # 4. Remove a coluna original se o nome for diferente
     if col_id != 'cod_individuo': 
         df = df.drop(columns=[col_id], errors='ignore')
         
@@ -137,7 +129,8 @@ if not st.session_state['logado']:
         st.write("<br><br>", unsafe_allow_html=True)
         c1, c_img, c2 = st.columns([1, 1.5, 1])
         with c_img:
-            try: st.image("equipe5_PRT/notebooks/Streamlit/logo_prt.png", use_container_width=True)
+            # CORREÇÃO DO CAMINHO DA LOGO
+            try: st.image("notebooks/Streamlit/logo_prt.png", use_container_width=True)
             except: st.info("[Espaço da Logo PRT]")
                 
         st.markdown("<h2 style='text-align: center;'>Acesso ao Sistema</h2>", unsafe_allow_html=True)
@@ -147,27 +140,28 @@ if not st.session_state['logado']:
             btn_entrar = st.form_submit_button("Conectar ao Hub")
             
             if btn_entrar:
-                # Validação estrita das credenciais
                 if usuario == "prt_admin" and senha == "PRT2026": 
                     st.session_state['logado'] = True
                     st.rerun() 
                 elif usuario != "" or senha != "":
                     st.error("🚫 Usuário ou senha incorretos. Tente novamente.")
 else:
-    # Botão Sair da Conta 
     col_sair, _ = st.columns([1.5, 8.5])
-# ... (o resto do seu código continua igual a partir daqui)
+    with col_sair:
+        st.write("<br>", unsafe_allow_html=True)
+        st.markdown("<style>div[data-testid='stButton'] button:contains('Sair da Conta') { border: 1px solid #4CAF50 !important; background: rgba(25,40,79,0.8) !important; color: #4CAF50 !important; border-radius: 8px !important; box-shadow: none !important; width: 100%; margin-top: 0px !important; padding: 8px !important; } div[data-testid='stButton'] button:contains('Sair da Conta'):hover { background: #4CAF50 !important; color: #19284F !important; }</style>", unsafe_allow_html=True)
+        if st.button("Sair da Conta"): st.session_state['logado'] = False; st.session_state['pagina'] = "Home"; st.rerun()
 
     # ==========================================
     # TELA 0: HOME
     # ==========================================
     if st.session_state['pagina'] == "Home":
-        aplicar_fundo_home("fundo_prt.jpg")
+        # CORREÇÃO DO CAMINHO DO FUNDO
+        aplicar_fundo_home("notebooks/Streamlit/fundo_prt.jpg")
         st.markdown("<h1 class='titulo-futurista'>Central de Inteligência PRT</h1><br>", unsafe_allow_html=True)
         
         c_esq, c_dir = st.columns(2, gap="large") 
         
-        # LADO ESQUERDO: SIMULADOR DE LOTE
         with c_esq:
             with st.container(border=True):
                 st.markdown("<h2 style='text-align: center; color: #4CAF50; margin-top: 0;'>🔮 Simulador de Lote</h2>", unsafe_allow_html=True)
@@ -186,7 +180,6 @@ else:
                                     def ler(f): return pd.read_csv(f) if f.name.endswith('.csv') else pd.read_excel(f)
                                     df_temp = padronizar_id(ler(up_unica))
                                     
-                                    # Salva o resultado no session_state para garantir persistência
                                     if 'cod_individuo' in df_temp.columns and not df_temp.empty:
                                         ids_validos = df_temp['cod_individuo'].dropna().unique()
                                         st.session_state['df_res'] = pd.DataFrame({
@@ -212,18 +205,15 @@ else:
                         if st.button("Unificar e Prever", use_container_width=True, key="btn_multi"):
                             with st.spinner("A tratar e unificar as 4 bases..."):
                                 try:
-                                    # Aplica a leitura e padronização cega a todas as bases
                                     df1 = padronizar_id(ler_arquivo(u1))
                                     df2 = padronizar_id(ler_arquivo(u2))
                                     df3 = padronizar_id(ler_arquivo(u3))
                                     df4 = padronizar_id(ler_arquivo(u4))
                                     
-                                    # Faz a junção perfeita (Outer Join dinâmico)
                                     df_final_para_previsao = df1.merge(df2, on='cod_individuo', how='outer')\
                                                                 .merge(df3, on='cod_individuo', how='outer')\
                                                                 .merge(df4, on='cod_individuo', how='outer')
                                                                 
-                                    # Salva o resultado no session_state para garantir persistência
                                     if 'cod_individuo' in df_final_para_previsao.columns and not df_final_para_previsao.empty:
                                         ids_validos = df_final_para_previsao['cod_individuo'].dropna().unique()
                                         st.session_state['df_res'] = pd.DataFrame({
@@ -235,25 +225,17 @@ else:
                                 except Exception as e: 
                                     st.error(f"Erro ao unificar as bases: {e}")
                 
-                # ==========================================
-                # EXIBIÇÃO DA TABELA (ROLANDO E COM PESQUISA) E PERSISTENTE
-                # ==========================================
-                # Como este bloco está FORA das verificações de botão, a tabela continuará aqui 
-                # mesmo se você navegar pelas abas laterais e voltar!
                 if 'df_res' in st.session_state:
                     df_res_atual = st.session_state['df_res']
                     st.success(f"✅ Análise concluída! {len(df_res_atual):,} clientes processados e unificados.")
                     
                     st.write("<br>", unsafe_allow_html=True)
                     
-                    # Barra de pesquisa interativa
                     busca = st.text_input("🔍 Procurar ID específico:")
                     
                     if busca: 
-                        # Filtra em tempo real se algo for digitado
                         df_res_atual = df_res_atual[df_res_atual['ID'].astype(str).str.contains(busca, case=False, na=False)]
                         
-                    # A tabela com altura fixa (212px = ~5 linhas) garantindo o efeito rolável sem quebrar o layout
                     st.dataframe(
                         df_res_atual.style.background_gradient(cmap='RdYlGn_r', subset=['Probabilidade (%)']), 
                         height=212, 
@@ -261,15 +243,14 @@ else:
                         hide_index=True
                     )
                         
-        # LADO DIREITO: CARDS DE PRÉVIA (COM IMAGENS)
         with c_dir:
-            # Card 1: Prévia de Clusterização
             with st.container(border=True):
                 st.markdown("<h3 style='color: #4CAF50; margin-top: 0;'>💡 Clusterização e Insights</h3>", unsafe_allow_html=True)
                 st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Prévia: Risco de Churn por Segmento (K-Means)</p>", unsafe_allow_html=True)
                 
+                # CORREÇÃO DO CAMINHO DA IMAGEM DE CLUSTERIZAÇÃO
                 try: 
-                    st.image("img_clusterizacao.png", use_container_width=True)
+                    st.image("notebooks/Streamlit/img_clusterizacao.png", use_container_width=True)
                 except: 
                     st.info("🖼️ [Coloque o arquivo 'img_clusterizacao.png' na pasta para exibir aqui]")
                 
@@ -277,13 +258,13 @@ else:
 
             st.write("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-            # Card 2: Prévia de Modelagem
             with st.container(border=True):
                 st.markdown("<h3 style='color: #4CAF50; margin-top: 0;'>📊 Análise e Modelagem</h3>", unsafe_allow_html=True)
                 st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Prévia: Performance do Ensemble de Modelos (ROC-AUC)</p>", unsafe_allow_html=True)
                 
+                # CORREÇÃO DO CAMINHO DA IMAGEM DE MODELAGEM
                 try: 
-                    st.image("img_modelagem.png", use_container_width=True)
+                    st.image("notebooks/Streamlit/img_modelagem.png", use_container_width=True)
                 except: 
                     st.info("🖼️ [Coloque o arquivo 'img_modelagem.png' na pasta para exibir aqui]")
                 
@@ -299,9 +280,6 @@ else:
                 
         st.markdown("<h1 style='text-align: center; margin-top: -10px;'>💡 Principais Insights da Análise Exploratória</h1>", unsafe_allow_html=True)
         
-        # ========================================================
-        # PAINEL DE INSIGHTS (TEXTOS ORIGINAIS DO REPORT - 100% PRESERVADOS)
-        # ========================================================
         st.markdown("<p style='text-align: center; font-size: 1.1rem; margin-bottom: 30px;'>Análise prática dos 6 perfis comportamentais (K-Means) segmentados pela base histórica.</p>", unsafe_allow_html=True)
 
         col_risco, col_fiel = st.columns(2, gap="large")
@@ -320,7 +298,7 @@ else:
             st.markdown("""
             <div style="background: rgba(25, 40, 79, 0.4); border-radius: 12px; border: 1px solid rgba(230, 126, 34, 0.4); padding: 15px; margin-bottom: 15px; backdrop-filter: blur(10px);">
                 <h4 style="color: #e67e22; margin-top: 0; margin-bottom: 5px;">Cluster 5 <span style="font-size: 0.9rem; color: #FFF; font-weight: normal;">(Participação: 5,6% | Churn: 18,5%)</span></h4>
-                <p style="font-size: 0.9rem; line-height: 1.5; margin-bottom: 10px;"><b>Descrição:</b> Menor satisfação (NPS 4,3) e menor índice de relacionamento (44,7) de todos os clusters - sinal de insatisfação ativa, não só de tempo de casa curto.</p>
+                <p style="font-size: 0.9rem; line-height: 1.5; margin-bottom: 10px;"><b>Descrição:</b> Menor satisfação (NPS 4,3) e menor índice de relacionamento (44,7) de todos clusters - sinal de insatisfação ativa, não só de tempo de casa curto.</p>
                 <p style="font-size: 0.9rem; line-height: 1.5; color: #A0AABF;"><b>Insight Estratégico:</b> Relativamente fidelizado, renda alta e com apólices diversificadas, mas NPS baixo e pagamentos atrasados. Foco total na relação com o cliente: contato humano atencioso e entender o atraso dos pagamentos.</p>
             </div>
             """, unsafe_allow_html=True)
@@ -362,10 +340,6 @@ else:
             
         st.divider()
 
-        # ========================================================
-        # LÓGICA DE GRÁFICOS DINÂMICOS (INTOCADA)
-        # ========================================================
-        # Definição dos 6 Segmentos baseados no Notebook
         nomes_clusters = [
             "Cluster 3 - Risco Crítico Imediato", 
             "Cluster 5 - Desengajados Críticos", 
@@ -484,7 +458,6 @@ else:
     # ==========================================
     elif st.session_state.get('pagina') in ["Modelagem", "Análise e Modelagem"]:
         try:
-            # Botão de voltar
             c_voltar, _ = st.columns([2, 7])
             with c_voltar:
                 if st.button("← Voltar para a Central", key="voltar_home_exp"): 
