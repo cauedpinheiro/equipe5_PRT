@@ -129,7 +129,8 @@ if not st.session_state['logado']:
         st.write("<br><br>", unsafe_allow_html=True)
         c1, c_img, c2 = st.columns([1, 1.5, 1])
         with c_img:
-            try: st.image("equipe5_PRT/notebooks/Streamlit/logo_prt.png", use_container_width=True)
+            # CORREÇÃO DO CAMINHO DA LOGO
+            try: st.image("notebooks/Streamlit/logo_prt.png", use_container_width=True)
             except: st.info("[Espaço da Logo PRT]")
                 
         st.markdown("<h2 style='text-align: center;'>Acesso ao Sistema</h2>", unsafe_allow_html=True)
