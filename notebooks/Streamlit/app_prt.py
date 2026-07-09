@@ -480,6 +480,11 @@ else:
             else:
                 df_modelo = st.session_state['df_res']
                 total_clientes = len(df_modelo)
+                
+                # Distribuição predita dinâmica baseada nos dados recém-enviados
+                qtd_churn = len(df_modelo[df_modelo['Probabilidade (%)'] >= 50.0])
+                qtd_retidos = total_clientes - qtd_churn
+                taxa_churn_predita = (qtd_churn / total_clientes) * 100 if total_clientes > 0 else 0
 
                 # ==========================================================
                 # 🚨 INSIRA AQUI OS VALORES REAIS DO SEU MODELO DO VS CODE 🚨
@@ -594,12 +599,23 @@ else:
                         line=dict(color='#e74c3c', width=2, dash='dash')
                     ))
 
+                    # AQUI ESTÁ A CORREÇÃO DA SINTAXE DO PLOTLY!
                     fig_gains.update_layout(
                         paper_bgcolor='rgba(0,0,0,0)', 
                         plot_bgcolor='rgba(0,0,0,0)',
                         margin=dict(l=0, r=0, t=20, b=0),
-                        xaxis=dict(title="% da Base Contatada", tickfont=dict(color='#FFFFFF'), titlefont=dict(color='#FFFFFF'), showgrid=True, gridcolor='rgba(255,255,255,0.1)'),
-                        yaxis=dict(title="% de Churn Capturado", tickfont=dict(color='#FFFFFF'), titlefont=dict(color='#FFFFFF'), showgrid=True, gridcolor='rgba(255,255,255,0.1)'),
+                        xaxis=dict(
+                            title=dict(text="% da Base Contatada", font=dict(color='#FFFFFF')), 
+                            tickfont=dict(color='#FFFFFF'), 
+                            showgrid=True, 
+                            gridcolor='rgba(255,255,255,0.1)'
+                        ),
+                        yaxis=dict(
+                            title=dict(text="% de Churn Capturado", font=dict(color='#FFFFFF')), 
+                            tickfont=dict(color='#FFFFFF'), 
+                            showgrid=True, 
+                            gridcolor='rgba(255,255,255,0.1)'
+                        ),
                         legend=dict(font=dict(color="#FFFFFF"), orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
                     )
 
