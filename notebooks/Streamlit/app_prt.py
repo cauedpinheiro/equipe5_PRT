@@ -471,45 +471,44 @@ else:
                     st.session_state['pagina'] = "Home"
                     st.rerun()
             
-            # REQUISITO 3: Bloqueio caso a base não tenha sido rodada ainda
+            # REQUISITO: Bloqueio caso a base não tenha sido rodada ainda
             if 'df_res' not in st.session_state or st.session_state['df_res'].empty:
                 st.write("<br><br>", unsafe_allow_html=True)
                 st.warning("⚠️ Nenhuma base de dados foi processada no momento.")
                 st.info("💡 Por favor, volte à página inicial (Home), faça o upload dos seus arquivos e clique em 'Unificar e Prever' para que a Inteligência Artificial gere as métricas desta rodada.")
             
             else:
-                # Temos dados! Vamos extrair informações dinâmicas do processamento atual
                 df_modelo = st.session_state['df_res']
                 total_clientes = len(df_modelo)
                 
-                # REQUISITO 2: Gráficos e estatísticas atualizando a cada rodada
-                # Calculando a distribuição REAL predita para esta base
+                # Distribuição predita dinâmica baseada nos dados recém-enviados
                 qtd_churn = len(df_modelo[df_modelo['Probabilidade (%)'] >= 50.0])
                 qtd_retidos = total_clientes - qtd_churn
                 taxa_churn_predita = (qtd_churn / total_clientes) * 100 if total_clientes > 0 else 0
 
-                # Simulando variação dinâmica dos KPIs baseada no lote atual para refletir a nova rodagem
-                np.random.seed(total_clientes) # O seed garante que a mesma base dê os mesmos KPIs, mas bases novas mudem
-                acc_dinamico = np.random.uniform(86.5, 89.2)
-                rec_dinamico = np.random.uniform(83.1, 87.8)
-                f1_dinamico = np.random.uniform(84.5, 88.0)
-                auc_dinamico = np.random.uniform(0.90, 0.94)
+                # ==========================================================
+                # 🚨 INSIRA AQUI OS VALORES REAIS DO SEU MODELO DO VS CODE 🚨
+                # ==========================================================
+                acc_real = 82.5    # Substitua pela sua Acurácia real (ex: 82.5)
+                rec_real = 79.8    # Substitua pelo seu Recall real
+                f1_real = 81.1     # Substitua pelo seu F1-Score real
+                auc_real = 0.81    # Substitua pelo seu AUC-ROC real (ex: 0.81)
 
                 st.markdown("<h1 style='text-align: center; margin-top: -10px;'>📊 Desempenho e Vetores de Decisão do Modelo</h1>", unsafe_allow_html=True)
-                st.markdown(f"<p style='text-align: center; font-size: 1.1rem; margin-bottom: 30px; color: #A0AABF;'>Métricas de eficiência da IA aplicadas ao lote atual de <b>{total_clientes:,}</b> clientes processados.</p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='text-align: center; font-size: 1.1rem; margin-bottom: 30px; color: #A0AABF;'>Métricas reais de eficiência da IA aplicadas ao lote de <b>{total_clientes:,}</b> clientes processados.</p>", unsafe_allow_html=True)
 
                 # ---------------------------------------------------------
-                # SEÇÃO 1: MÉTRICAS DE EFICIÊNCIA DO MODELO (Dinâmicas)
+                # SEÇÃO 1: MÉTRICAS DE EFICIÊNCIA DO MODELO (Valores Reais Fixos)
                 # ---------------------------------------------------------
-                st.markdown("### 🎯 Eficiência Preditiva (Rodada Atual)")
+                st.markdown("### 🎯 Eficiência Preditiva (Modelo Final)")
                 
                 col_m1, col_m2, col_m3, col_m4 = st.columns(4)
                 
                 metricas = [
-                    {"col": col_m1, "titulo": "Acurácia Global", "valor": f"{acc_dinamico:.1f}%", "cor": "#3498db", "desc": "Acertos totais do modelo"},
-                    {"col": col_m2, "titulo": "Recall (Sensibilidade)", "valor": f"{rec_dinamico:.1f}%", "cor": "#e74c3c", "desc": "Capacidade de reter quem ia sair"},
-                    {"col": col_m3, "titulo": "F1-Score", "valor": f"{f1_dinamico:.1f}%", "cor": "#9b59b6", "desc": "Equilíbrio precisão/recall"},
-                    {"col": col_m4, "titulo": "AUC-ROC", "valor": f"{auc_dinamico:.2f}", "cor": "#2ecc71", "desc": "Qualidade da separação de classes"}
+                    {"col": col_m1, "titulo": "Acurácia Global", "valor": f"{acc_real}%", "cor": "#3498db", "desc": "Acertos totais do modelo"},
+                    {"col": col_m2, "titulo": "Recall (Sensibilidade)", "valor": f"{rec_real}%", "cor": "#e74c3c", "desc": "Capacidade de reter quem ia sair"},
+                    {"col": col_m3, "titulo": "F1-Score", "valor": f"{f1_real}%", "cor": "#9b59b6", "desc": "Equilíbrio precisão/recall"},
+                    {"col": col_m4, "titulo": "AUC-ROC", "valor": f"{auc_real}", "cor": "#2ecc71", "desc": "Qualidade da separação de classes"}
                 ]
                 
                 for m in metricas:
@@ -525,23 +524,27 @@ else:
                 st.divider()
 
                 # ---------------------------------------------------------
-                # SEÇÃO 2: GRÁFICOS DINÂMICOS
+                # SEÇÃO 2: GRÁFICOS DE FEATURE IMPORTANCE E PREDIÇÃO
                 # ---------------------------------------------------------
                 col_graf1, col_graf2 = st.columns(2, gap="large")
                 
                 with col_graf1:
                     st.markdown("### ⚖️ Pesos e Coeficientes (Feature Importance)")
-                    st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Impacto dinâmico de cada variável para as decisões desta rodada.</p>", unsafe_allow_html=True)
+                    st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Impacto real de cada variável segundo o treinamento do modelo.</p>", unsafe_allow_html=True)
                     
-                    # Gerando variação dinâmica nos coeficientes para refletir a nova base
-                    base_impacts = [0.35, 0.22, 0.18, 0.12, 0.08, 0.05]
-                    impacts_dinamicos = [max(0.01, val + np.random.uniform(-0.03, 0.03)) for val in base_impacts]
-                    total_impacts = sum(impacts_dinamicos)
-                    impacts_dinamicos = [val / total_impacts for val in impacts_dinamicos] # Normaliza para 100%
-
+                    # ==========================================================
+                    # 🚨 INSIRA AQUI A ORDEM E OS PESOS (FEATURE IMPORTANCE) REAIS
+                    # ==========================================================
                     df_importancia = pd.DataFrame({
-                        "Variável": ["Tempo de Relacionamento", "Tipo de Cobertura (Básica)", "Qtd. Produtos Ativos", "NPS / Satisfação", "Atraso Pagamento (Dias)", "Idade"],
-                        "Impacto": impacts_dinamicos
+                        "Variável": [
+                            "Tempo de Relacionamento", 
+                            "Tipo de Cobertura (Básica)", 
+                            "Qtd. Produtos Ativos", 
+                            "NPS / Satisfação", 
+                            "Atraso Pagamento (Dias)", 
+                            "Idade"
+                        ],
+                        "Impacto": [0.35, 0.22, 0.18, 0.12, 0.08, 0.05] # Modifique estes números pelos resultados do seu Feature Importance
                     }).sort_values(by="Impacto", ascending=True)
 
                     fig_importancia = px.bar(
