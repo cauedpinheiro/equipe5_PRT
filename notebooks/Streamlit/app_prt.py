@@ -208,12 +208,11 @@ else:
                                         clusters = np.random.choice([0, 1, 2, 3, 4, 5], size=len(ids_validos))
                                         probs = [gerar_probabilidade_por_cluster(c) for c in clusters]
                                         
-                                        # Junta a base original completa para podermos extrair as features depois
-                                        df_temp['Cluster'] = clusters
-                                        df_temp['Probabilidade (%)'] = np.round(probs, 1)
-                                        df_temp = df_temp.rename(columns={'cod_individuo': 'ID'})
-                                        
-                                        st.session_state['df_res'] = df_temp
+                                        st.session_state['df_res'] = pd.DataFrame({
+                                            'ID': ids_validos, 
+                                            'Cluster': clusters,
+                                            'Probabilidade (%)': np.round(probs, 1)
+                                        })
                                     else:
                                         st.warning("⚠️ O ficheiro foi lido, mas a coluna de ID não foi encontrada.")
                                 except Exception as e: 
@@ -250,12 +249,11 @@ else:
                                         clusters = np.random.choice([0, 1, 2, 3, 4, 5], size=len(ids_validos))
                                         probs = [gerar_probabilidade_por_cluster(c) for c in clusters]
                                         
-                                        # Junta a base original completa para extração de features
-                                        df_final_para_previsao['Cluster'] = clusters
-                                        df_final_para_previsao['Probabilidade (%)'] = np.round(probs, 1)
-                                        df_final_para_previsao = df_final_para_previsao.rename(columns={'cod_individuo': 'ID'})
-                                        
-                                        st.session_state['df_res'] = df_final_para_previsao
+                                        st.session_state['df_res'] = pd.DataFrame({
+                                            'ID': ids_validos, 
+                                            'Cluster': clusters,
+                                            'Probabilidade (%)': np.round(probs, 1)
+                                        })
                                     else:
                                         st.warning("⚠️ O ficheiro foi lido, mas a coluna de ID não foi encontrada.")
                                 except Exception as e: 
@@ -265,10 +263,11 @@ else:
                 if 'df_res' in st.session_state:
                     df_res_atual = st.session_state['df_res'].copy()
                     
-                    # Garante que as colunas principais fiquem visíveis (ID, Probabilidade e Cluster)
+                    # Garante que as colunas fiquem na ordem correta
                     coluna_id = 'ID' if 'ID' in df_res_atual.columns else df_res_atual.columns[0]
-                    colunas_exibicao = [coluna_id, 'Probabilidade (%)', 'Cluster']
-                    
+                    outras_colunas = [col for col in df_res_atual.columns if col not in [coluna_id, 'Cluster']]
+                    df_res_atual = df_res_atual[[coluna_id, 'Cluster'] + outras_colunas]
+
                     st.success(f"✅ Análise concluída! {len(df_res_atual):,} clientes processados e unificados.")
                     st.write("<br>", unsafe_allow_html=True)
                     
@@ -282,11 +281,11 @@ else:
                         st.warning("Nenhum cliente encontrado com o ID procurado.")
                         evento = None
                     else:
-                        st.markdown("<p style='font-size: 0.95rem; color: #A0AABF;'>🖱️ <b>Clique em qualquer linha da tabela abaixo</b> para ver as características e a ação recomendada.</p>", unsafe_allow_html=True)
+                        st.markdown("<p style='font-size: 0.95rem; color: #A0AABF;'>🖱️ <b>Clique em qualquer linha da tabela abaixo</b> para ver a ação recomendada.</p>", unsafe_allow_html=True)
                         
-                        # Mostra na tabela apenas os campos fundamentais para não poluir
+                        # Tabela nativa do Streamlit sem CSS conflitante
                         evento = st.dataframe(
-                            df_tabela[colunas_exibicao].style.background_gradient(cmap='RdYlGn_r', subset=['Probabilidade (%)']), 
+                            df_tabela, 
                             height=250, 
                             use_container_width=True,
                             on_select="rerun",
@@ -297,7 +296,7 @@ else:
                     st.divider()
                     
                     # QUADRADO DE INSIGHTS BASEADO NO CLIQUE
-                    st.markdown("<h3 style='color: #4CAF50; margin-top: 0; font-size: 1.2rem;'>💡 Ficha do Cliente & Ação de Retenção</h3>", unsafe_allow_html=True)
+                    st.markdown("<h3 style='color: #4CAF50; margin-top: 0; font-size: 1.2rem;'>💡 Ação de Retenção Recomendada</h3>", unsafe_allow_html=True)
                     
                     if evento and len(evento.selection.rows) > 0:
                         indice = evento.selection.rows[0]
@@ -307,22 +306,6 @@ else:
                         cluster_do_cliente = int(dados_cliente['Cluster'])
                         prob_cliente = float(dados_cliente['Probabilidade (%)'])
                         
-                        # Função inteligente para extrair o valor da base mesmo se a coluna mudar de nome
-                        def pegar_valor(r, nomes_possiveis):
-                            for col in r.index:
-                                if any(n in str(col).lower() for n in nomes_possiveis) and pd.notna(r[col]):
-                                    val = r[col]
-                                    if isinstance(val, float) and val.is_integer(): return str(int(val))
-                                    return str(val)
-                            return "N/D"
-
-                        tempo = pegar_valor(dados_cliente, ['tempo', 'meses', 'dias', 'relacionamento'])
-                        cobertura = pegar_valor(dados_cliente, ['cobertura', 'tipo_cobertura', 'plano'])
-                        qtd_prod = pegar_valor(dados_cliente, ['num_produtos', 'qtd_produtos', 'produtos'])
-                        nps = pegar_valor(dados_cliente, ['nps', 'satisfacao', 'score'])
-                        atraso = pegar_valor(dados_cliente, ['atraso', 'dias_atraso', 'inadimplencia'])
-                        idade = pegar_valor(dados_cliente, ['idade'])
-
                         insights_6_clusters = {
                             0: "Grupo pequeno e misto. Evidência do impacto do tratamento humanitário: coberturas variadas, mas NPS alto. Focar na experiência do cliente para reduzir tendência ao churn.",
                             1: "Perfil em transição (moderado). Típico caso de cliente que pode se tornar grande parceiro se nutrido para engajamento humanitário e convertido para apólices variadas/premium.",
@@ -346,41 +329,13 @@ else:
                             <p style="margin: 0; color: {cor_ativa}; font-weight: bold; font-size: 1rem; margin-bottom: 5px;">
                                 Cliente {id_selecionado} (Cluster {cluster_do_cliente}) | Risco Associado: {prob_cliente:.1f}%
                             </p>
-                            
-                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px; margin-bottom: 15px;">
-                                <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
-                                    <p style="margin: 0; font-size: 0.75rem; color: #A0AABF; text-transform: uppercase;">Tempo de Relacionamento</p>
-                                    <p style="margin: 0; font-weight: bold; color: #FFF; font-size: 1.1rem;">{tempo}</p>
-                                </div>
-                                <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
-                                    <p style="margin: 0; font-size: 0.75rem; color: #A0AABF; text-transform: uppercase;">Tipo Cobertura</p>
-                                    <p style="margin: 0; font-weight: bold; color: #FFF; font-size: 1.1rem;">{cobertura}</p>
-                                </div>
-                                <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
-                                    <p style="margin: 0; font-size: 0.75rem; color: #A0AABF; text-transform: uppercase;">Qtd. Produtos</p>
-                                    <p style="margin: 0; font-weight: bold; color: #FFF; font-size: 1.1rem;">{qtd_prod}</p>
-                                </div>
-                                <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
-                                    <p style="margin: 0; font-size: 0.75rem; color: #A0AABF; text-transform: uppercase;">NPS Atual</p>
-                                    <p style="margin: 0; font-weight: bold; color: #FFF; font-size: 1.1rem;">{nps}</p>
-                                </div>
-                                <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
-                                    <p style="margin: 0; font-size: 0.75rem; color: #A0AABF; text-transform: uppercase;">Atraso Pagamento</p>
-                                    <p style="margin: 0; font-weight: bold; color: #FFF; font-size: 1.1rem;">{atraso}</p>
-                                </div>
-                                <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
-                                    <p style="margin: 0; font-size: 0.75rem; color: #A0AABF; text-transform: uppercase;">Idade Cliente</p>
-                                    <p style="margin: 0; font-weight: bold; color: #FFF; font-size: 1.1rem;">{idade}</p>
-                                </div>
-                            </div>
-                            
-                            <p style="margin: 0; color: #E0E0E0; font-size: 0.95rem; line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
-                                <b>Ação Recomendada:</b> {insight_texto}
+                            <p style="margin: 0; color: #E0E0E0; font-size: 0.95rem; line-height: 1.5;">
+                                {insight_texto}
                             </p>
                         </div>
                         """, unsafe_allow_html=True)
                     else:
-                        st.info("👆 Selecione um cliente clicando em uma linha da tabela acima para visualizar a Ficha Completa e os insights.")
+                        st.info("👆 Selecione um cliente clicando em uma linha da tabela acima para visualizar os insights.")
                         
         with c_dir:
             with st.container(border=True):
