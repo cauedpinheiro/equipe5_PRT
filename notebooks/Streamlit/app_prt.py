@@ -276,12 +276,13 @@ else:
                         st.markdown("<p style='font-size: 0.95rem; color: #A0AABF;'>🖱️ <b>Clique em qualquer linha da tabela abaixo</b> para ver a ação recomendada.</p>", unsafe_allow_html=True)
                         
                         # Tabela nativa puramente limpa para permitir a seleção
+                        # CORREÇÃO: "single-row" com HÍFEN
                         evento = st.dataframe(
                             df_tabela, 
                             height=250, 
                             use_container_width=True,
                             on_select="rerun",
-                            selection_mode="single_row",
+                            selection_mode="single-row", 
                             hide_index=True
                         )
                     
