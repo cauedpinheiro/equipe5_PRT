@@ -120,6 +120,16 @@ def ler_arquivo(f):
     else:
         return pd.read_excel(f)
 
+# Função para gerar probabilidade coerente com o Cluster
+def gerar_probabilidade_por_cluster(cluster):
+    if cluster == 3: return np.random.uniform(70, 99)
+    elif cluster == 5: return np.random.uniform(50, 69.9)
+    elif cluster == 1: return np.random.uniform(30, 49.9)
+    elif cluster == 0: return np.random.uniform(10, 29.9)
+    elif cluster == 4: return np.random.uniform(4, 9.9)
+    elif cluster == 2: return np.random.uniform(0.1, 3.9)
+    return np.random.uniform(1, 99)
+
 # ==========================================
 # 5. TELA DE LOGIN E HUB
 # ==========================================
@@ -191,9 +201,16 @@ else:
                                     
                                     if 'cod_individuo' in df_temp.columns and not df_temp.empty:
                                         ids_validos = df_temp['cod_individuo'].dropna().unique()
+                                        
+                                        # Lógica coerente: gera o cluster primeiro, depois a probabilidade
+                                        np.random.seed(42)
+                                        clusters = np.random.choice([0, 1, 2, 3, 4, 5], size=len(ids_validos))
+                                        probs = [gerar_probabilidade_por_cluster(c) for c in clusters]
+                                        
                                         st.session_state['df_res'] = pd.DataFrame({
                                             'ID': ids_validos, 
-                                            'Probabilidade (%)': np.random.uniform(1, 99, len(ids_validos)).round(1)
+                                            'Cluster': clusters,
+                                            'Probabilidade (%)': np.round(probs, 1)
                                         })
                                     else:
                                         st.warning("⚠️ O ficheiro foi lido, mas a coluna de ID não foi encontrada.")
@@ -225,40 +242,30 @@ else:
                                                                 
                                     if 'cod_individuo' in df_final_para_previsao.columns and not df_final_para_previsao.empty:
                                         ids_validos = df_final_para_previsao['cod_individuo'].dropna().unique()
+                                        
+                                        # Lógica coerente: gera o cluster primeiro, depois a probabilidade
+                                        np.random.seed(42)
+                                        clusters = np.random.choice([0, 1, 2, 3, 4, 5], size=len(ids_validos))
+                                        probs = [gerar_probabilidade_por_cluster(c) for c in clusters]
+                                        
                                         st.session_state['df_res'] = pd.DataFrame({
                                             'ID': ids_validos, 
-                                            'Probabilidade (%)': np.random.uniform(1, 99, len(ids_validos)).round(1)
+                                            'Cluster': clusters,
+                                            'Probabilidade (%)': np.round(probs, 1)
                                         })
                                     else:
                                         st.warning("⚠️ O ficheiro foi lido, mas a coluna de ID não foi encontrada.")
                                 except Exception as e: 
                                     st.error(f"Erro ao unificar as bases: {e}")
                 
-                # --- EXIBIÇÃO DA TABELA (COM CLIQUE E ÍCONES DE CORES) ---
+                # --- EXIBIÇÃO DA TABELA (LIMPA, INTERATIVA E SEM ERROS DE COR) ---
                 if 'df_res' in st.session_state:
                     df_res_atual = st.session_state['df_res'].copy()
                     
-                    # Garante que a coluna Cluster exista
-                    if 'Cluster' not in df_res_atual.columns:
-                        np.random.seed(42) 
-                        df_res_atual['Cluster'] = np.random.choice([0, 1, 2, 3, 4, 5], size=len(df_res_atual))
-                    
-                    # Função que atribui um emoji colorido para o cluster
-                    def obter_icone_cluster(c):
-                        if c == 0: return '🔵 Azul'
-                        if c == 1: return '🟡 Amarelo'
-                        if c == 2: return '🟢 Verde Esc.'
-                        if c == 3: return '🔴 Vermelho'
-                        if c == 4: return '🍏 Verde Cl.'
-                        if c == 5: return '🟠 Laranja'
-                        return '⚪'
-                        
-                    df_res_atual['Status (Cor)'] = df_res_atual['Cluster'].apply(obter_icone_cluster)
-                    
-                    # Reorganiza as colunas
+                    # Reorganiza as colunas para o Cluster ficar ao lado do ID (caso haja mais colunas)
                     coluna_id = 'ID' if 'ID' in df_res_atual.columns else df_res_atual.columns[0]
-                    outras_colunas = [col for col in df_res_atual.columns if col not in [coluna_id, 'Cluster', 'Status (Cor)']]
-                    df_res_atual = df_res_atual[[coluna_id, 'Status (Cor)', 'Cluster'] + outras_colunas]
+                    outras_colunas = [col for col in df_res_atual.columns if col not in [coluna_id, 'Cluster']]
+                    df_res_atual = df_res_atual[[coluna_id, 'Cluster'] + outras_colunas]
 
                     st.success(f"✅ Análise concluída! {len(df_res_atual):,} clientes processados e unificados.")
                     st.write("<br>", unsafe_allow_html=True)
@@ -275,14 +282,13 @@ else:
                     else:
                         st.markdown("<p style='font-size: 0.95rem; color: #A0AABF;'>🖱️ <b>Clique em qualquer linha da tabela abaixo</b> para ver a ação recomendada.</p>", unsafe_allow_html=True)
                         
-                        # Tabela nativa puramente limpa para permitir a seleção
-                        # CORREÇÃO: "single-row" com HÍFEN
+                        # Tabela 100% nativa sem coloração para suportar on_select perfeitamente
                         evento = st.dataframe(
                             df_tabela, 
                             height=250, 
                             use_container_width=True,
                             on_select="rerun",
-                            selection_mode="single-row", 
+                            selection_mode="single-row",
                             hide_index=True
                         )
                     
@@ -291,7 +297,6 @@ else:
                     # QUADRADO DE INSIGHTS BASEADO NO CLIQUE
                     st.markdown("<h3 style='color: #4CAF50; margin-top: 0; font-size: 1.2rem;'>💡 Ação de Retenção Recomendada</h3>", unsafe_allow_html=True)
                     
-                    # Checa se o usuário clicou em alguma linha
                     if evento and len(evento.selection.rows) > 0:
                         indice = evento.selection.rows[0]
                         dados_cliente = df_tabela.iloc[indice]
@@ -309,6 +314,7 @@ else:
                             5: "Desengajados Críticos. Menor satisfação (NPS baixo) e pagamentos atrasados. Foco total na relação com o cliente: contato humano atencioso e entender a causa dos atrasos."
                         }
                         
+                        # Cores indicativas do nível de risco (associadas ao cluster) para a borda do insight
                         cores_borda = {
                             0: "#3498db", 1: "#f1c40f", 2: "#27ae60", 
                             3: "#c0392b", 4: "#2ecc71", 5: "#e67e22"
@@ -320,7 +326,7 @@ else:
                         st.markdown(f"""
                         <div style="background: rgba(25, 40, 79, 0.4); border-left: 5px solid {cor_ativa}; border-radius: 6px; padding: 15px; margin-top: 10px;">
                             <p style="margin: 0; color: {cor_ativa}; font-weight: bold; font-size: 1rem; margin-bottom: 5px;">
-                                Cliente {id_selecionado} (Cluster {cluster_do_cliente}) | Probabilidade: {prob_cliente:.1f}%
+                                Cliente {id_selecionado} (Cluster {cluster_do_cliente}) | Risco Associado: {prob_cliente:.1f}%
                             </p>
                             <p style="margin: 0; color: #E0E0E0; font-size: 0.95rem; line-height: 1.5;">
                                 {insight_texto}
