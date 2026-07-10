@@ -234,7 +234,7 @@ else:
                                 except Exception as e: 
                                     st.error(f"Erro ao unificar as bases: {e}")
                 
-                # --- EXIBIÇÃO DA TABELA INTERATIVA COM CORES E CLIQUE ---
+                # --- EXIBIÇÃO DA TABELA (COM CLIQUE E ÍCONES DE CORES) ---
                 if 'df_res' in st.session_state:
                     df_res_atual = st.session_state['df_res'].copy()
                     
@@ -243,10 +243,22 @@ else:
                         np.random.seed(42) 
                         df_res_atual['Cluster'] = np.random.choice([0, 1, 2, 3, 4, 5], size=len(df_res_atual))
                     
-                    # Reorganiza as colunas para o Cluster ficar ao lado do ID
+                    # Função que atribui um emoji colorido para o cluster
+                    def obter_icone_cluster(c):
+                        if c == 0: return '🔵 Azul'
+                        if c == 1: return '🟡 Amarelo'
+                        if c == 2: return '🟢 Verde Esc.'
+                        if c == 3: return '🔴 Vermelho'
+                        if c == 4: return '🍏 Verde Cl.'
+                        if c == 5: return '🟠 Laranja'
+                        return '⚪'
+                        
+                    df_res_atual['Status (Cor)'] = df_res_atual['Cluster'].apply(obter_icone_cluster)
+                    
+                    # Reorganiza as colunas
                     coluna_id = 'ID' if 'ID' in df_res_atual.columns else df_res_atual.columns[0]
-                    outras_colunas = [col for col in df_res_atual.columns if col not in [coluna_id, 'Cluster']]
-                    df_res_atual = df_res_atual[[coluna_id, 'Cluster'] + outras_colunas]
+                    outras_colunas = [col for col in df_res_atual.columns if col not in [coluna_id, 'Cluster', 'Status (Cor)']]
+                    df_res_atual = df_res_atual[[coluna_id, 'Status (Cor)', 'Cluster'] + outras_colunas]
 
                     st.success(f"✅ Análise concluída! {len(df_res_atual):,} clientes processados e unificados.")
                     st.write("<br>", unsafe_allow_html=True)
@@ -259,57 +271,34 @@ else:
                     
                     if df_tabela.empty:
                         st.warning("Nenhum cliente encontrado com o ID procurado.")
+                        evento = None
                     else:
-                        # Reseta o index da tabela
-                        df_tabela = df_tabela.reset_index(drop=True)
+                        st.markdown("<p style='font-size: 0.95rem; color: #A0AABF;'>🖱️ <b>Clique em qualquer linha da tabela abaixo</b> para ver a ação recomendada.</p>", unsafe_allow_html=True)
                         
-                        # Função de coloração específica para os clusters (Aplica apenas na Probabilidade e no Cluster)
-                        def aplicar_cores_clusters(row):
-                            c = row['Cluster']
-                            cor = ''
-                            if c == 0: cor = 'background-color: rgba(52, 152, 219, 0.4);'   # Azul
-                            elif c == 1: cor = 'background-color: rgba(243, 156, 18, 0.4);' # Laranja Claro
-                            elif c == 2: cor = 'background-color: rgba(39, 174, 96, 0.4);'  # Verde Escuro
-                            elif c == 3: cor = 'background-color: rgba(192, 57, 43, 0.5);'  # Vermelho
-                            elif c == 4: cor = 'background-color: rgba(46, 204, 113, 0.4);' # Verde Claro
-                            elif c == 5: cor = 'background-color: rgba(230, 126, 34, 0.4);' # Laranja Escuro
-                            
-                            estilos = ['' for _ in row.index]
-                            for i, col in enumerate(row.index):
-                                if col in ['Cluster', 'Probabilidade (%)']:
-                                    estilos[i] = f"{cor} color: white; font-weight: bold;"
-                            return estilos
-
-                        # Aplica o estilo e esconde o index nativamente no pandas para evitar o bug do Streamlit
-                        df_styled = df_tabela.style.apply(aplicar_cores_clusters, axis=1).hide(axis="index")
-                        
-                        st.markdown("<p style='font-size: 0.95rem; color: #A0AABF;'>🖱️ <b>Clique em qualquer linha da tabela abaixo</b> para ver a ação recomendada para aquele cliente.</p>", unsafe_allow_html=True)
-                        
-                        # Tabela Interativa (on_select aciona o evento de clique)
+                        # Tabela nativa puramente limpa para permitir a seleção
                         evento = st.dataframe(
-                            df_styled, 
+                            df_tabela, 
                             height=250, 
                             use_container_width=True,
                             on_select="rerun",
-                            selection_mode="single_row"
+                            selection_mode="single_row",
+                            hide_index=True
                         )
                     
                     st.divider()
                     
-                    # QUADRADO DE INSIGHTS BASEADO NO CLIQUE DA TABELA
+                    # QUADRADO DE INSIGHTS BASEADO NO CLIQUE
                     st.markdown("<h3 style='color: #4CAF50; margin-top: 0; font-size: 1.2rem;'>💡 Ação de Retenção Recomendada</h3>", unsafe_allow_html=True)
                     
-                    linhas_selecionadas = evento.selection.rows
-                    
-                    if len(linhas_selecionadas) > 0:
-                        # Extrai os dados do cliente clicado
-                        indice = linhas_selecionadas[0]
+                    # Checa se o usuário clicou em alguma linha
+                    if evento and len(evento.selection.rows) > 0:
+                        indice = evento.selection.rows[0]
                         dados_cliente = df_tabela.iloc[indice]
+                        
                         id_selecionado = dados_cliente[coluna_id]
                         cluster_do_cliente = int(dados_cliente['Cluster'])
                         prob_cliente = float(dados_cliente['Probabilidade (%)'])
                         
-                        # Dicionário de Insights para os 6 Clusters
                         insights_6_clusters = {
                             0: "Grupo pequeno e misto. Evidência do impacto do tratamento humanitário: coberturas variadas, mas NPS alto. Focar na experiência do cliente para reduzir tendência ao churn.",
                             1: "Perfil em transição (moderado). Típico caso de cliente que pode se tornar grande parceiro se nutrido para engajamento humanitário e convertido para apólices variadas/premium.",
@@ -319,19 +308,18 @@ else:
                             5: "Desengajados Críticos. Menor satisfação (NPS baixo) e pagamentos atrasados. Foco total na relação com o cliente: contato humano atencioso e entender a causa dos atrasos."
                         }
                         
-                        # Dicionário de cores para a borda do cartão acompanhar a cor do cluster
                         cores_borda = {
-                            0: "#3498db", 1: "#f39c12", 2: "#27ae60", 
+                            0: "#3498db", 1: "#f1c40f", 2: "#27ae60", 
                             3: "#c0392b", 4: "#2ecc71", 5: "#e67e22"
                         }
                         
-                        insight_texto = insights_6_clusters.get(cluster_do_cliente, "Insight não definido para este cluster.")
+                        insight_texto = insights_6_clusters.get(cluster_do_cliente, "Insight não definido.")
                         cor_ativa = cores_borda.get(cluster_do_cliente, "#2ecc71")
                         
                         st.markdown(f"""
                         <div style="background: rgba(25, 40, 79, 0.4); border-left: 5px solid {cor_ativa}; border-radius: 6px; padding: 15px; margin-top: 10px;">
                             <p style="margin: 0; color: {cor_ativa}; font-weight: bold; font-size: 1rem; margin-bottom: 5px;">
-                                Cliente {id_selecionado} (Cluster {cluster_do_cliente}) | Risco: {prob_cliente:.1f}%
+                                Cliente {id_selecionado} (Cluster {cluster_do_cliente}) | Probabilidade: {prob_cliente:.1f}%
                             </p>
                             <p style="margin: 0; color: #E0E0E0; font-size: 0.95rem; line-height: 1.5;">
                                 {insight_texto}
