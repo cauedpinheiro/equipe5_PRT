@@ -173,7 +173,6 @@ else:
                                     if 'cod_individuo' in df_temp.columns and not df_temp.empty:
                                         df_temp = df_temp.drop_duplicates(subset=['cod_individuo']).copy()
                                         np.random.seed(42)
-                                        # ADICIONAR PROB E CLUSTER PRESERVANDO OS DADOS ORIGINAIS
                                         df_temp['Cluster'] = np.random.choice([0, 1, 2, 3, 4, 5], size=len(df_temp))
                                         df_temp['Probabilidade (%)'] = np.random.uniform(1, 99, len(df_temp)).round(1)
                                         df_temp.rename(columns={'cod_individuo': 'ID'}, inplace=True)
@@ -253,28 +252,40 @@ else:
                         indice_selecionado = evento.selection.rows[0]
                         cliente = df_tabela.iloc[indice_selecionado]
 
-                        # Função flexível para encontrar as colunas independentemente do nome exato
+                        # Função atualizada para não confundir nomes de colunas
                         def buscar_valor(linha, possiveis_nomes):
-                            for col in linha.index:
-                                if any(nome in str(col).lower() for nome in possiveis_nomes) and pd.notna(linha[col]):
-                                    val = linha[col]
-                                    if isinstance(val, float) and val.is_integer(): return str(int(val))
-                                    return str(val)
-                            return "N/D"
+                            # 1. Busca exata (prioridade)
+                            for nome in possiveis_nomes:
+                                for col in linha.index:
+                                    if nome == str(col).lower() and pd.notna(linha[col]) and str(linha[col]).strip() != "":
+                                        val = linha[col]
+                                        if isinstance(val, float) and val.is_integer(): return str(int(val))
+                                        return str(val)
+                            
+                            # 2. Busca parcial (bloqueando a palavra "valor" para não pegar valores financeiros por engano)
+                            for nome in possiveis_nomes:
+                                for col in linha.index:
+                                    col_str = str(col).lower()
+                                    if nome in col_str and "valor" not in col_str and pd.notna(linha[col]) and str(linha[col]).strip() != "":
+                                        val = linha[col]
+                                        if isinstance(val, float) and val.is_integer(): return str(int(val))
+                                        return str(val)
+                            
+                            return "Dado não encontrado"
 
-                        # Extração Inteligente
-                        id_cliente = cliente.get('ID', 'Desconhecido')
+                        # Extração Inteligente com prioridade aos nomes corretos da PRT
+                        id_cliente = cliente.get('ID', 'Dado não encontrado')
                         cluster = int(cliente.get('Cluster', 0))
                         prob = float(cliente.get('Probabilidade (%)', 0.0))
                         
                         idade = buscar_valor(cliente, ['idade', 'age'])
-                        nps = buscar_valor(cliente, ['nps', 'satisfacao', 'score'])
-                        tempo = buscar_valor(cliente, ['tempo', 'meses', 'dias', 'relacionamento'])
-                        cobertura = buscar_valor(cliente, ['cobertura', 'tipo_cobertura', 'plano'])
-                        produtos = buscar_valor(cliente, ['num_produtos', 'qtd_produtos', 'produtos', 'apolices'])
+                        nps = buscar_valor(cliente, ['satisfacao_nps', 'nps', 'satisfacao', 'score'])
+                        tempo = buscar_valor(cliente, ['tempo_cliente_dias', 'tempo_cliente', 'tempo', 'meses', 'dias', 'relacionamento'])
+                        cobertura = buscar_valor(cliente, ['tipo_cobertura', 'cobertura', 'plano'])
+                        produtos = buscar_valor(cliente, ['num_produtos_contratados', 'num_produtos', 'qtd_produtos', 'produtos', 'apolices'])
                         
-                        # Definição de Avatar Dinâmico baseado no Gênero (Se houver na base)
-                        genero = buscar_valor(cliente, ['genero', 'sexo', 'gender']).lower()
+                        # Definição de Avatar Dinâmico baseado no Gênero
+                        genero = buscar_valor(cliente, ['sexo', 'genero', 'gender']).lower()
                         if genero.startswith('f') or 'mulher' in genero:
                             img_avatar = "https://avatar.iran.liara.run/public/girl"
                         elif genero.startswith('m') or 'homem' in genero:
@@ -297,7 +308,7 @@ else:
                         cor_cluster = cores.get(cluster, "#ffffff")
                         insight_texto = insights_clusters.get(cluster, "Insight não mapeado.")
 
-                        st.markdown("<h3 style='color: #4CAF50; margin-top: 15px;'>📋 Perfil e Recomendações (IA)</h3>", unsafe_allow_html=True)
+                        st.markdown("<h3 style='color: #4CAF50; margin-top: 15px;'>📋 Perfil</h3>", unsafe_allow_html=True)
 
                         st.markdown(f"""
                         <div style="background: rgba(25, 40, 79, 0.4); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); padding: 20px; backdrop-filter: blur(10px); margin-top: 10px;">
