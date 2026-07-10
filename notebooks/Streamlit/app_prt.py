@@ -234,7 +234,7 @@ else:
                                 except Exception as e: 
                                     st.error(f"Erro ao unificar as bases: {e}")
                 
-                # --- EXIBIÇÃO DA TABELA (COM CORREÇÃO DO ERRO DO PANDAS .STYLE) E INSIGHTS ---
+                # --- EXIBIÇÃO DA TABELA (SEM O ERRO DO PANDAS .STYLE) E INSIGHTS ---
                 if 'df_res' in st.session_state:
                     df_res_atual = st.session_state['df_res'].copy()
                     
@@ -257,15 +257,15 @@ else:
                     if busca: 
                         df_tabela = df_tabela[df_tabela[coluna_id].astype(str).str.contains(busca, case=False, na=False)]
                     
-                    # CORREÇÃO DO ERRO DE ESTILIZAÇÃO DO STREAMLIT:
+                    # CORREÇÃO DEFINITIVA DO ERRO: Usa renderização nativa do Streamlit
                     if df_tabela.empty:
                         st.warning("Nenhum cliente encontrado com o ID procurado.")
                     else:
                         st.dataframe(
-                            df_tabela.reset_index(drop=True).style.background_gradient(cmap='RdYlGn_r', subset=['Probabilidade (%)']), 
+                            df_tabela, 
                             height=212, 
-                            use_container_width=True
-                            # Removido hide_index=True para não gerar conflito com o .style
+                            use_container_width=True,
+                            hide_index=True # Agora funciona perfeitamente!
                         )
                     
                     st.divider()
@@ -616,7 +616,6 @@ else:
                     
                     # ==========================================================
                     # 🚨 INSIRA AQUI OS DADOS REAIS DA SUA CURVA DE GANHO (Eixo Y)
-                    # O "Modelo Predito" representa a porcentagem de churns encontrados
                     # ==========================================================
                     df_gains = pd.DataFrame({
                         "% da Base Abordada": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
@@ -626,7 +625,6 @@ else:
 
                     fig_gains = go.Figure()
                     
-                    # Linha do Modelo
                     fig_gains.add_trace(go.Scatter(
                         x=df_gains["% da Base Abordada"], 
                         y=df_gains["Modelo Predito"],
@@ -636,7 +634,6 @@ else:
                         marker=dict(size=6, color='#2ecc71')
                     ))
                     
-                    # Linha Aleatória (Baseline)
                     fig_gains.add_trace(go.Scatter(
                         x=df_gains["% da Base Abordada"], 
                         y=df_gains["Aleatório (Baseline)"],
@@ -645,7 +642,6 @@ else:
                         line=dict(color='#e74c3c', width=2, dash='dash')
                     ))
 
-                    # Sintaxe do Plotly 100% corrigida
                     fig_gains.update_layout(
                         paper_bgcolor='rgba(0,0,0,0)', 
                         plot_bgcolor='rgba(0,0,0,0)',
