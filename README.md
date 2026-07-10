@@ -250,9 +250,18 @@ SageMaker Studio (ARN `arn:aws:sagemaker:us-east-2:906513713169:mlflow-tracking-
   `predict()`, servível como um artefato só (necessário pra um endpoint de inferência).
 - **Rodando local (sem AWS):** suba um servidor local (`mlflow server --backend-store-uri
   sqlite:///mlflow.db --default-artifact-root ./mlartifacts --host 127.0.0.1 --port 5000`) e defina
-  `MLFLOW_TRACKING_URI=http://127.0.0.1:5000` antes de executar os notebooks.
+  `MLFLOW_TRACKING_URI=http://127.0.0.1:5000` antes de executar os notebooks. Serve como alternativa
+  caso o tracking server do SageMaker não esteja acessível.
 - **Rodando no SageMaker Studio:** dando `git pull` no ambiente Studio, a *execution role* do domínio
   já deve ter permissão para o tracking server `equipe5` — não precisa trocar nada no código.
+- **O que cada run mostra:** além do AUC-ROC, cada modelo (`01`-`06`) e o ensemble final (`25`) loga
+  um conjunto completo de métricas de classificação (accuracy, precision, recall, f1, log-loss,
+  average precision) e os gráficos de diagnóstico — curva ROC, matriz de confusão, curva
+  precisão-recall, curva de calibração e importância de features (top 15) — visíveis direto na aba
+  do run no MLflow. Os modelos de boosting (XGBoost/LightGBM/CatBoost) também logam a evolução do
+  AUC a cada rodada de treino; Random Forest e Extra Trees logam AUC vs. número de árvores; o
+  ensemble final loga o AUC de cada um dos 5 folds do bagging — todas essas séries aparecem como
+  gráficos de linha reais (não só um número) na aba de métricas do MLflow.
 
 > **Pacote `mlflow`:** requer Python compatível (a versão 3.14+ do MLflow tem um bug conhecido de
 > import em Python 3.14 muito recente — usamos `mlflow==3.12.0` como contorno). Instalar também
