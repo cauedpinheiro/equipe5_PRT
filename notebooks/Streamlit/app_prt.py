@@ -252,51 +252,54 @@ else:
                         indice_selecionado = evento.selection.rows[0]
                         cliente = df_tabela.iloc[indice_selecionado]
 
-                        # NOVA LÓGICA DE BUSCA: Com proteção contra variáveis Dummies (0 e 1)
-                        def buscar_valor(linha, possiveis_nomes, is_texto=False):
-                            # 1. Busca exata
-                            for nome in possiveis_nomes:
-                                for col in linha.index:
-                                    if nome == str(col).lower() and pd.notna(linha[col]) and str(linha[col]).strip() != "":
-                                        val = linha[col]
-                                        # Trava para não pegar colunas binárias quando esperamos texto
-                                        if is_texto and str(val).strip() in ['0', '1', '0.0', '1.0', 'False', 'True']: continue
-                                        if isinstance(val, float) and val.is_integer(): return str(int(val))
-                                        return str(val)
-                            
-                            # 2. Busca parcial (bloqueando a palavra "valor")
-                            for nome in possiveis_nomes:
-                                for col in linha.index:
-                                    col_str = str(col).lower()
-                                    if nome in col_str and "valor" not in col_str and pd.notna(linha[col]) and str(linha[col]).strip() != "":
-                                        val = linha[col]
-                                        # Trava para não pegar colunas binárias quando esperamos texto
-                                        if is_texto and str(val).strip() in ['0', '1', '0.0', '1.0', 'False', 'True']: continue
-                                        if isinstance(val, float) and val.is_integer(): return str(int(val))
-                                        return str(val)
-                            
+                        # FUNÇÕES DE EXTRAÇÃO INTELIGENTE (Tratam One-Hot Encodings e Valores Númericos)
+                        def get_num(linha, chaves):
+                            for c in linha.index:
+                                cstr = str(c).lower()
+                                if any(k in cstr for k in chaves) and "valor" not in cstr:
+                                    v = linha[c]
+                                    if pd.notna(v) and str(v).strip() != "":
+                                        if isinstance(v, (int, float)): return str(int(v))
+                                        return str(v)
                             return "Dado não encontrado"
 
+                        def get_text_or_dummy(linha, chaves):
+                            # 1. Procura valor em texto direto na coluna
+                            for c in linha.index:
+                                cstr = str(c).lower()
+                                if any(k in cstr for k in chaves) and "valor" not in cstr:
+                                    v = linha[c]
+                                    if isinstance(v, str) and not v.isnumeric() and v.lower() not in ['true', 'false', 'nan']:
+                                        return v
+                            # 2. Procura variáveis Dummy (onde a resposta é 1)
+                            for c in linha.index:
+                                cstr = str(c).lower()
+                                if any(k in cstr for k in chaves) and "valor" not in cstr:
+                                    v = linha[c]
+                                    if v == 1 or v == 1.0 or str(v).lower() == 'true':
+                                        nome_limpo = cstr.replace('tipo_', '').replace('cobertura_', '').replace('plano_', '')
+                                        return nome_limpo.replace('_', ' ').strip().title()
+                            return "Dado não encontrado"
+
+                        # Extração
                         id_cliente = cliente.get('ID', 'Dado não encontrado')
                         cluster = int(cliente.get('Cluster', 0))
                         prob = float(cliente.get('Probabilidade (%)', 0.0))
                         
-                        idade = buscar_valor(cliente, ['idade', 'age'])
-                        nps = buscar_valor(cliente, ['satisfacao_nps', 'nps', 'satisfacao', 'score'])
-                        tempo = buscar_valor(cliente, ['tempo_cliente_dias', 'tempo_cliente', 'tempo', 'meses', 'dias', 'relacionamento'])
-                        produtos = buscar_valor(cliente, ['num_produtos_contratados', 'num_produtos', 'qtd_produtos', 'produtos', 'apolices'])
+                        idade = get_num(cliente, ['idade', 'age'])
+                        nps = get_num(cliente, ['satisfacao_nps', 'nps', 'satisfacao', 'score'])
+                        tempo = get_num(cliente, ['tempo_cliente_dias', 'tempo_cliente', 'tempo', 'meses', 'dias', 'relacionamento'])
+                        produtos = get_num(cliente, ['num_produtos_contratados', 'num_produtos', 'qtd_produtos', 'produtos', 'apolices'])
+                        cobertura = get_text_or_dummy(cliente, ['cobertura', 'plano'])
                         
-                        # Cobertura aciona a trava 'is_texto=True' para evitar pegar colunas transformadas em 0 ou 1
-                        cobertura = buscar_valor(cliente, ['tipo_cobertura', 'cobertura', 'plano'], is_texto=True)
-                        
-                        # Definição de Avatar Dinâmico baseado no Gênero
-                        genero = buscar_valor(cliente, ['sexo', 'genero', 'gender'], is_texto=True).lower()
-                        if genero.startswith('f') or 'mulher' in genero:
+                        # Definição de Avatar Dinâmico
+                        genero_raw = str(get_text_or_dummy(cliente, ['sexo', 'genero', 'gender'])).lower()
+                        if genero_raw.startswith('f') or 'mulher' in genero_raw:
                             img_avatar = "https://avatar.iran.liara.run/public/girl"
-                        elif genero.startswith('m') or 'homem' in genero:
+                        elif genero_raw.startswith('m') or 'homem' in genero_raw:
                             img_avatar = "https://avatar.iran.liara.run/public/boy"
                         else:
-                            img_avatar = "https://avatar.iran.liara.run/public" # Neutro/Aleatório
+                            img_avatar = "https://avatar.iran.liara.run/public" 
                             
                         # Insights por Cluster
                         insights_clusters = {
