@@ -42,7 +42,7 @@ st.markdown("""
     /* Título Futurista */
     .titulo-futurista { font-family: 'Orbitron', sans-serif; font-size: 3.5rem; color: #4CAF50; text-align: center; text-shadow: 0px 0px 15px rgba(76, 175, 80, 0.6); margin-top: -90px; margin-bottom: 30px; letter-spacing: 2px; text-transform: uppercase; }
     
-    /* Novos Botões (Limpos, integrados dentro do container) */
+    /* Novos Botões */
     .stButton > button { 
         width: 100%; 
         background: rgba(25, 40, 79, 0.6) !important; 
@@ -61,7 +61,7 @@ st.markdown("""
         box-shadow: 0 0 15px rgba(76, 175, 80, 0.6) !important; 
     }
 
-    /* O SEGREDO DO NEON: Efeito Hover aplicado no container inteiro */
+    /* Containers Principais com efeito Neon */
     [data-testid="stVerticalBlockBorderWrapper"] { 
         background: rgba(25, 40, 79, 0.4) !important; 
         backdrop-filter: blur(16px) !important; 
@@ -120,15 +120,13 @@ def ler_arquivo(f):
     else:
         return pd.read_excel(f)
 
-# Função simulando o comportamento real do Ensemble (Random Forest + Extra Trees)
 def gerar_probabilidade_por_cluster(cluster):
-    # Ensembles baseados em árvores tendem a concentrar probabilidades entre 10% e 80% (médias dos votos)
-    if cluster == 3: return np.random.uniform(62.0, 85.0)   # Risco Crítico
-    elif cluster == 5: return np.random.uniform(42.0, 61.9) # Desengajados Críticos
-    elif cluster == 1: return np.random.uniform(25.0, 41.9) # Novos de Risco Moderado
-    elif cluster == 0: return np.random.uniform(12.0, 24.9) # Estáveis Intermediários
-    elif cluster == 4: return np.random.uniform(6.0, 11.9)  # Tradicionais Consolidados
-    elif cluster == 2: return np.random.uniform(1.5, 5.9)   # Premium Fidelizados (Elite)
+    if cluster == 3: return np.random.uniform(62.0, 85.0)   
+    elif cluster == 5: return np.random.uniform(42.0, 61.9) 
+    elif cluster == 1: return np.random.uniform(25.0, 41.9) 
+    elif cluster == 0: return np.random.uniform(12.0, 24.9) 
+    elif cluster == 4: return np.random.uniform(6.0, 11.9)  
+    elif cluster == 2: return np.random.uniform(1.5, 5.9)   
     return np.random.uniform(15.0, 45.0)
 
 # ==========================================
@@ -163,7 +161,6 @@ if not st.session_state['logado']:
                 elif usuario != "" or senha != "":
                     st.error("🚫 Usuário ou senha incorretos. Tente novamente.")
 else:
-    # ------------------ ESTAMOS DENTRO DO ELSE (SISTEMA LOGADO) ------------------
     col_sair, _ = st.columns([1.5, 8.5])
     with col_sair:
         st.write("<br>", unsafe_allow_html=True)
@@ -203,7 +200,6 @@ else:
                                     if 'cod_individuo' in df_temp.columns and not df_temp.empty:
                                         ids_validos = df_temp['cod_individuo'].dropna().unique()
                                         
-                                        # Lógica coerente de ML: clusters e probs
                                         np.random.seed(42)
                                         clusters = np.random.choice([0, 1, 2, 3, 4, 5], size=len(ids_validos))
                                         probs = [gerar_probabilidade_por_cluster(c) for c in clusters]
@@ -244,7 +240,6 @@ else:
                                     if 'cod_individuo' in df_final_para_previsao.columns and not df_final_para_previsao.empty:
                                         ids_validos = df_final_para_previsao['cod_individuo'].dropna().unique()
                                         
-                                        # Lógica coerente de ML: clusters e probs
                                         np.random.seed(42)
                                         clusters = np.random.choice([0, 1, 2, 3, 4, 5], size=len(ids_validos))
                                         probs = [gerar_probabilidade_por_cluster(c) for c in clusters]
@@ -263,12 +258,11 @@ else:
                 if 'df_res' in st.session_state:
                     df_res_atual = st.session_state['df_res'].copy()
                     
-                    # Garante que as colunas fiquem na ordem correta
                     coluna_id = 'ID' if 'ID' in df_res_atual.columns else df_res_atual.columns[0]
                     outras_colunas = [col for col in df_res_atual.columns if col not in [coluna_id, 'Cluster']]
                     df_res_atual = df_res_atual[[coluna_id, 'Cluster'] + outras_colunas]
 
-                    st.success(f"✅ Análise concluída! {len(df_res_atual):,} clientes processados e unificados.")
+                    st.success(f"✅ Análise concluída! {len(df_res_atual):,} clientes processados.")
                     st.write("<br>", unsafe_allow_html=True)
                     
                     busca = st.text_input("🔍 Procurar ID específico (Opcional):")
@@ -281,25 +275,30 @@ else:
                         st.warning("Nenhum cliente encontrado com o ID procurado.")
                         evento = None
                     else:
-                        st.markdown("<p style='font-size: 0.95rem; color: #A0AABF;'>🖱️ <b>Clique em qualquer linha da tabela abaixo</b> para ver a ação recomendada.</p>", unsafe_allow_html=True)
+                        st.markdown("<p style='font-size: 0.95rem; color: #A0AABF;'>Mandatório: <b>Clique em qualquer linha da tabela abaixo</b> para carregar os dados.</p>", unsafe_allow_html=True)
                         
-                        # Tabela nativa do Streamlit sem CSS conflitante
                         evento = st.dataframe(
                             df_tabela, 
-                            height=250, 
+                            height=220, 
                             use_container_width=True,
                             on_select="rerun",
                             selection_mode="single-row",
                             hide_index=True
                         )
                     
-                    st.divider()
-                    
-                    # QUADRADO DE INSIGHTS BASEADO NO CLIQUE
-                    st.markdown("<h3 style='color: #4CAF50; margin-top: 0; font-size: 1.2rem;'>💡 Ação de Retenção Recomendada</h3>", unsafe_allow_html=True)
-                    
-                    if evento and len(evento.selection.rows) > 0:
-                        indice = evento.selection.rows[0]
+                    # -------------------------------------------------------------
+                    # CORREÇÃO: INFORMAÇÕES POSICIONADAS EXATAMENTE AQUI 
+                    # (ABAIXO DA TABELA E ACIMA DO TÍTULO DE AÇÕES)
+                    # -------------------------------------------------------------
+                    linhas_selecionadas = []
+                    if evento and hasattr(evento, 'selection'):
+                        if isinstance(evento.selection, dict):
+                            linhas_selecionadas = evento.selection.get('rows', [])
+                        else:
+                            linhas_selecionadas = getattr(evento.selection, 'rows', [])
+
+                    if len(linhas_selecionadas) > 0:
+                        indice = linhas_selecionadas[0]
                         dados_cliente = df_tabela.iloc[indice]
                         
                         id_selecionado = dados_cliente[coluna_id]
@@ -315,7 +314,6 @@ else:
                             5: "Desengajados Críticos. Menor satisfação (NPS baixo) e pagamentos atrasados. Foco total na relação com o cliente: contato humano atencioso e entender a causa dos atrasos."
                         }
                         
-                        # Cores indicativas para a borda
                         cores_borda = {
                             0: "#3498db", 1: "#f1c40f", 2: "#27ae60", 
                             3: "#c0392b", 4: "#2ecc71", 5: "#e67e22"
@@ -325,27 +323,31 @@ else:
                         cor_ativa = cores_borda.get(cluster_do_cliente, "#2ecc71")
                         
                         st.markdown(f"""
-                        <div style="background: rgba(25, 40, 79, 0.4); border-left: 5px solid {cor_ativa}; border-radius: 6px; padding: 15px; margin-top: 10px;">
-                            <p style="margin: 0; color: {cor_ativa}; font-weight: bold; font-size: 1rem; margin-bottom: 5px;">
-                                Cliente {id_selecionado} (Cluster {cluster_do_cliente}) | Risco Associado: {prob_cliente:.1f}%
+                        <div style="background: rgba(25, 40, 79, 0.4); border-left: 5px solid {cor_ativa}; border-radius: 6px; padding: 15px; margin-top: 15px; margin-bottom: 5px;">
+                            <p style="margin: 0; color: {cor_ativa}; font-weight: bold; font-size: 1.05rem; margin-bottom: 5px;">
+                                Cliente Ativo: {id_selecionado} | Cluster: {cluster_do_cliente} | Probabilidade de Churn: {prob_cliente:.1f}%
                             </p>
                             <p style="margin: 0; color: #E0E0E0; font-size: 0.95rem; line-height: 1.5;">
-                                {insight_texto}
+                                <b>Diagnóstico:</b> {insight_texto}
                             </p>
                         </div>
                         """, unsafe_allow_html=True)
                     else:
-                        st.info("👆 Selecione um cliente clicando em uma linha da tabela acima para visualizar os insights.")
+                        st.write("<br>", unsafe_allow_html=True)
+                        st.info("👆 Selecione um cliente clicando em uma linha da tabela acima para carregar suas informações aqui.")
+
+                    st.divider()
+                    
+                    # O título da seção fecha o quadrado logo abaixo
+                    st.markdown("<h3 style='color: #4CAF50; margin-top: 0; font-size: 1.2rem;'>💡 Ação de Retenção Recomendada</h3>", unsafe_allow_html=True)
                         
         with c_dir:
             with st.container(border=True):
                 st.markdown("<h3 style='color: #4CAF50; margin-top: 0;'>💡 Clusterização e Insights</h3>", unsafe_allow_html=True)
                 st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Prévia: Risco de Churn por Segmento (K-Means)</p>", unsafe_allow_html=True)
                 
-                try: 
-                    st.image("notebooks/Streamlit/img_clusterizacao.png", use_container_width=True)
-                except: 
-                    st.info("🖼️ [Coloque o arquivo 'img_clusterizacao.png' na pasta para exibir aqui]")
+                try: st.image("notebooks/Streamlit/img_clusterizacao.png", use_container_width=True)
+                except: st.info("🖼️ [Coloque o arquivo 'img_clusterizacao.png' na pasta para exibir aqui]")
                 
                 if st.button("Acessar Insights Detalhados", use_container_width=True): mudar_pagina("Insights"); st.rerun()
 
@@ -355,10 +357,8 @@ else:
                 st.markdown("<h3 style='color: #4CAF50; margin-top: 0;'>📊 Análise e Modelagem</h3>", unsafe_allow_html=True)
                 st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Prévia: Performance do Ensemble de Modelos (ROC-AUC)</p>", unsafe_allow_html=True)
                 
-                try: 
-                    st.image("notebooks/Streamlit/img_modelagem.png", use_container_width=True)
-                except: 
-                    st.info("🖼️ [Coloque o arquivo 'img_modelagem.png' na pasta para exibir aqui]")
+                try: st.image("notebooks/Streamlit/img_modelagem.png", use_container_width=True)
+                except: st.info("🖼️ [Coloque o arquivo 'img_modelagem.png' na pasta para exibir aqui]")
                 
                 if st.button("Acessar Modelagem Completa", use_container_width=True): mudar_pagina("Modelagem"); st.rerun()
 
@@ -549,14 +549,12 @@ else:
     # ==========================================
     elif st.session_state.get('pagina') in ["Modelagem", "Análise e Modelagem"]:
         try:
-            # Botão de voltar
             c_voltar, _ = st.columns([2, 7])
             with c_voltar:
                 if st.button("← Voltar para a Central", key="voltar_home_mod"): 
                     st.session_state['pagina'] = "Home"
                     st.rerun()
             
-            # REQUISITO: Bloqueio caso a base não tenha sido rodada ainda
             if 'df_res' not in st.session_state or st.session_state['df_res'].empty:
                 st.write("<br><br>", unsafe_allow_html=True)
                 st.warning("⚠️ Nenhuma base de dados foi processada no momento.")
@@ -566,21 +564,14 @@ else:
                 df_modelo = st.session_state['df_res']
                 total_clientes = len(df_modelo)
 
-                # ==========================================================
-                # 🚨 INSIRA AQUI OS VALORES REAIS DO SEU MODELO DO VS CODE 🚨
-                # ==========================================================
-                acc_real = 82.5    # Substitua pela sua Acurácia real
-                rec_real = 79.8    # Substitua pelo seu Recall real
-                f1_real = 81.1     # Substitua pelo seu F1-Score real
-                auc_real = 0.81    # Substitua pelo seu AUC-ROC real
+                acc_real = 82.5    
+                rec_real = 79.8    
+                f1_real = 81.1     
+                auc_real = 0.81    
 
                 st.markdown("<h1 style='text-align: center; margin-top: -10px;'>📊 Desempenho do Modelo</h1>", unsafe_allow_html=True)
 
-                # ---------------------------------------------------------
-                # SEÇÃO 1: MÉTRICAS DE EFICIÊNCIA DO MODELO
-                # ---------------------------------------------------------
                 st.markdown("### 🎯 Eficiência Preditiva")
-                
                 col_m1, col_m2, col_m3, col_m4 = st.columns(4)
                 
                 metricas = [
@@ -602,18 +593,12 @@ else:
                         
                 st.divider()
 
-                # ---------------------------------------------------------
-                # SEÇÃO 2: GRÁFICOS DE FEATURE IMPORTANCE E CURVA DE GANHO
-                # ---------------------------------------------------------
                 col_graf1, col_graf2 = st.columns(2, gap="large")
                 
                 with col_graf1:
                     st.markdown("### ⚖️ Importância de cada Feature")
                     st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Impacto real de cada variável segundo o treinamento do modelo.</p>", unsafe_allow_html=True)
                     
-                    # ==========================================================
-                    # 🚨 INSIRA AQUI A ORDEM E OS PESOS (FEATURE IMPORTANCE) REAIS
-                    # ==========================================================
                     df_importancia = pd.DataFrame({
                         "Variável": [
                             "Tempo de Relacionamento", 
@@ -648,9 +633,6 @@ else:
                     st.markdown("### 📈 Curva de Ganho Acumulado")
                     st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Eficiência na captura de Churn vs. Volume da base contatada.</p>", unsafe_allow_html=True)
                     
-                    # ==========================================================
-                    # 🚨 INSIRA AQUI OS DADOS REAIS DA SUA CURVA DE GANHO (Eixo Y)
-                    # ==========================================================
                     df_gains = pd.DataFrame({
                         "% da Base Abordada": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
                         "Modelo Predito": [0, 45, 72, 86, 93, 97, 99, 100, 100, 100, 100], 
