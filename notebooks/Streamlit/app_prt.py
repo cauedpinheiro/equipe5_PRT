@@ -86,7 +86,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 4. LÓGICA DO SIMULADOR E UNIFICAÇÃO (ATUALIZADA E BLINDADA)
+# 4. LÓGICA DO SIMULADOR E UNIFICAÇÃO
 # ==========================================
 def padronizar_id(df):
     df.columns = [str(c).strip().lower() for c in df.columns]
@@ -120,6 +120,17 @@ def ler_arquivo(f):
     else:
         return pd.read_excel(f)
 
+# Função simulando o comportamento real do Ensemble (Random Forest + Extra Trees)
+def gerar_probabilidade_por_cluster(cluster):
+    # Ensembles baseados em árvores tendem a concentrar probabilidades entre 10% e 80% (médias dos votos)
+    if cluster == 3: return np.random.uniform(62.0, 85.0)   # Risco Crítico
+    elif cluster == 5: return np.random.uniform(42.0, 61.9) # Desengajados Críticos
+    elif cluster == 1: return np.random.uniform(25.0, 41.9) # Novos de Risco Moderado
+    elif cluster == 0: return np.random.uniform(12.0, 24.9) # Estáveis Intermediários
+    elif cluster == 4: return np.random.uniform(6.0, 11.9)  # Tradicionais Consolidados
+    elif cluster == 2: return np.random.uniform(1.5, 5.9)   # Premium Fidelizados (Elite)
+    return np.random.uniform(15.0, 45.0)
+
 # ==========================================
 # 5. TELA DE LOGIN E HUB
 # ==========================================
@@ -129,7 +140,6 @@ if not st.session_state['logado']:
         st.write("<br><br>", unsafe_allow_html=True)
         c1, c_img, c2 = st.columns([1, 1.5, 1])
         with c_img:
-            # CORREÇÃO DO CAMINHO DA LOGO
             try: st.image("notebooks/Streamlit/logo_prt.png", use_container_width=True)
             except: st.info("[Espaço da Logo PRT]")
                 
@@ -140,7 +150,6 @@ if not st.session_state['logado']:
             btn_entrar = st.form_submit_button("Conectar ao Hub")
             
             if btn_entrar:
-                # Dicionário com todos os usuários e senhas permitidos
                 credenciais_validas = {
                     "prt_admin": "PRT2026",
                     "arthur_okada": "PRT_Arthur2026",
@@ -148,21 +157,26 @@ if not st.session_state['logado']:
                     "lucas_reis": "PRT_Lucas2026"
                 }
                 
-                # Verifica se o usuário existe no dicionário e se a senha bate com a dele
                 if usuario in credenciais_validas and credenciais_validas[usuario] == senha: 
                     st.session_state['logado'] = True
                     st.rerun() 
                 elif usuario != "" or senha != "":
                     st.error("🚫 Usuário ou senha incorretos. Tente novamente.")
 else:
+    # ------------------ ESTAMOS DENTRO DO ELSE (SISTEMA LOGADO) ------------------
     col_sair, _ = st.columns([1.5, 8.5])
-# ... (o resto do código continua igual a partir daqui)
+    with col_sair:
+        st.write("<br>", unsafe_allow_html=True)
+        st.markdown("<style>div[data-testid='stButton'] button:contains('Sair da Conta') { border: 1px solid #4CAF50 !important; background: rgba(25,40,79,0.8) !important; color: #4CAF50 !important; border-radius: 8px !important; box-shadow: none !important; width: 100%; margin-top: 0px !important; padding: 8px !important; } div[data-testid='stButton'] button:contains('Sair da Conta'):hover { background: #4CAF50 !important; color: #19284F !important; }</style>", unsafe_allow_html=True)
+        if st.button("Sair da Conta"): 
+            st.session_state['logado'] = False
+            st.session_state['pagina'] = "Home"
+            st.rerun()
 
     # ==========================================
     # TELA 0: HOME
     # ==========================================
     if st.session_state['pagina'] == "Home":
-        # CORREÇÃO DO CAMINHO DO FUNDO
         aplicar_fundo_home("notebooks/Streamlit/fundo_prt.jpg")
         st.markdown("<h1 class='titulo-futurista'>Central de Inteligência PRT</h1><br>", unsafe_allow_html=True)
         
@@ -188,9 +202,16 @@ else:
                                     
                                     if 'cod_individuo' in df_temp.columns and not df_temp.empty:
                                         ids_validos = df_temp['cod_individuo'].dropna().unique()
+                                        
+                                        # Lógica coerente de ML: clusters e probs
+                                        np.random.seed(42)
+                                        clusters = np.random.choice([0, 1, 2, 3, 4, 5], size=len(ids_validos))
+                                        probs = [gerar_probabilidade_por_cluster(c) for c in clusters]
+                                        
                                         st.session_state['df_res'] = pd.DataFrame({
                                             'ID': ids_validos, 
-                                            'Probabilidade (%)': np.random.uniform(1, 99, len(ids_validos)).round(1)
+                                            'Cluster': clusters,
+                                            'Probabilidade (%)': np.round(probs, 1)
                                         })
                                     else:
                                         st.warning("⚠️ O ficheiro foi lido, mas a coluna de ID não foi encontrada.")
@@ -222,39 +243,105 @@ else:
                                                                 
                                     if 'cod_individuo' in df_final_para_previsao.columns and not df_final_para_previsao.empty:
                                         ids_validos = df_final_para_previsao['cod_individuo'].dropna().unique()
+                                        
+                                        # Lógica coerente de ML: clusters e probs
+                                        np.random.seed(42)
+                                        clusters = np.random.choice([0, 1, 2, 3, 4, 5], size=len(ids_validos))
+                                        probs = [gerar_probabilidade_por_cluster(c) for c in clusters]
+                                        
                                         st.session_state['df_res'] = pd.DataFrame({
                                             'ID': ids_validos, 
-                                            'Probabilidade (%)': np.random.uniform(1, 99, len(ids_validos)).round(1)
+                                            'Cluster': clusters,
+                                            'Probabilidade (%)': np.round(probs, 1)
                                         })
                                     else:
                                         st.warning("⚠️ O ficheiro foi lido, mas a coluna de ID não foi encontrada.")
                                 except Exception as e: 
                                     st.error(f"Erro ao unificar as bases: {e}")
                 
+                # --- EXIBIÇÃO DA TABELA NATIVA E INTERATIVA ---
                 if 'df_res' in st.session_state:
-                    df_res_atual = st.session_state['df_res']
-                    st.success(f"✅ Análise concluída! {len(df_res_atual):,} clientes processados e unificados.")
+                    df_res_atual = st.session_state['df_res'].copy()
                     
+                    # Garante que as colunas fiquem na ordem correta
+                    coluna_id = 'ID' if 'ID' in df_res_atual.columns else df_res_atual.columns[0]
+                    outras_colunas = [col for col in df_res_atual.columns if col not in [coluna_id, 'Cluster']]
+                    df_res_atual = df_res_atual[[coluna_id, 'Cluster'] + outras_colunas]
+
+                    st.success(f"✅ Análise concluída! {len(df_res_atual):,} clientes processados e unificados.")
                     st.write("<br>", unsafe_allow_html=True)
                     
-                    busca = st.text_input("🔍 Procurar ID específico:")
+                    busca = st.text_input("🔍 Procurar ID específico (Opcional):")
                     
+                    df_tabela = df_res_atual.copy()
                     if busca: 
-                        df_res_atual = df_res_atual[df_res_atual['ID'].astype(str).str.contains(busca, case=False, na=False)]
+                        df_tabela = df_tabela[df_tabela[coluna_id].astype(str).str.contains(busca, case=False, na=False)]
+                    
+                    if df_tabela.empty:
+                        st.warning("Nenhum cliente encontrado com o ID procurado.")
+                        evento = None
+                    else:
+                        st.markdown("<p style='font-size: 0.95rem; color: #A0AABF;'>🖱️ <b>Clique em qualquer linha da tabela abaixo</b> para ver a ação recomendada.</p>", unsafe_allow_html=True)
                         
-                    st.dataframe(
-                        df_res_atual.style.background_gradient(cmap='RdYlGn_r', subset=['Probabilidade (%)']), 
-                        height=212, 
-                        use_container_width=True, 
-                        hide_index=True
-                    )
+                        # Tabela nativa do Streamlit sem CSS conflitante
+                        evento = st.dataframe(
+                            df_tabela, 
+                            height=250, 
+                            use_container_width=True,
+                            on_select="rerun",
+                            selection_mode="single-row",
+                            hide_index=True
+                        )
+                    
+                    st.divider()
+                    
+                    # QUADRADO DE INSIGHTS BASEADO NO CLIQUE
+                    st.markdown("<h3 style='color: #4CAF50; margin-top: 0; font-size: 1.2rem;'>💡 Ação de Retenção Recomendada</h3>", unsafe_allow_html=True)
+                    
+                    if evento and len(evento.selection.rows) > 0:
+                        indice = evento.selection.rows[0]
+                        dados_cliente = df_tabela.iloc[indice]
+                        
+                        id_selecionado = dados_cliente[coluna_id]
+                        cluster_do_cliente = int(dados_cliente['Cluster'])
+                        prob_cliente = float(dados_cliente['Probabilidade (%)'])
+                        
+                        insights_6_clusters = {
+                            0: "Grupo pequeno e misto. Evidência do impacto do tratamento humanitário: coberturas variadas, mas NPS alto. Focar na experiência do cliente para reduzir tendência ao churn.",
+                            1: "Perfil em transição (moderado). Típico caso de cliente que pode se tornar grande parceiro se nutrido para engajamento humanitário e convertido para apólices variadas/premium.",
+                            2: "Elite da base (Premium Fidelizados). Risco quase nulo. É o perfil mais fiel, focar em manutenção de relacionamento e benefícios exclusivos.",
+                            3: "Risco Crítico Imediato. Maior prioridade de retenção. Grande número de apólices do mesmo tipo e pouco tempo de casa. Investir em variedade das apólices e fidelização.",
+                            4: "Tradicionais Consolidados. Clientes fiéis com NPS muito elevado. Focar em cross-sell e fidelização, pois o tempo de fidelidade compensa possíveis coberturas inferiores.",
+                            5: "Desengajados Críticos. Menor satisfação (NPS baixo) e pagamentos atrasados. Foco total na relação com o cliente: contato humano atencioso e entender a causa dos atrasos."
+                        }
+                        
+                        # Cores indicativas para a borda
+                        cores_borda = {
+                            0: "#3498db", 1: "#f1c40f", 2: "#27ae60", 
+                            3: "#c0392b", 4: "#2ecc71", 5: "#e67e22"
+                        }
+                        
+                        insight_texto = insights_6_clusters.get(cluster_do_cliente, "Insight não definido.")
+                        cor_ativa = cores_borda.get(cluster_do_cliente, "#2ecc71")
+                        
+                        st.markdown(f"""
+                        <div style="background: rgba(25, 40, 79, 0.4); border-left: 5px solid {cor_ativa}; border-radius: 6px; padding: 15px; margin-top: 10px;">
+                            <p style="margin: 0; color: {cor_ativa}; font-weight: bold; font-size: 1rem; margin-bottom: 5px;">
+                                Cliente {id_selecionado} (Cluster {cluster_do_cliente}) | Risco Associado: {prob_cliente:.1f}%
+                            </p>
+                            <p style="margin: 0; color: #E0E0E0; font-size: 0.95rem; line-height: 1.5;">
+                                {insight_texto}
+                            </p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.info("👆 Selecione um cliente clicando em uma linha da tabela acima para visualizar os insights.")
                         
         with c_dir:
             with st.container(border=True):
                 st.markdown("<h3 style='color: #4CAF50; margin-top: 0;'>💡 Clusterização e Insights</h3>", unsafe_allow_html=True)
                 st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Prévia: Risco de Churn por Segmento (K-Means)</p>", unsafe_allow_html=True)
                 
-                # CORREÇÃO DO CAMINHO DA IMAGEM DE CLUSTERIZAÇÃO
                 try: 
                     st.image("notebooks/Streamlit/img_clusterizacao.png", use_container_width=True)
                 except: 
@@ -268,7 +355,6 @@ else:
                 st.markdown("<h3 style='color: #4CAF50; margin-top: 0;'>📊 Análise e Modelagem</h3>", unsafe_allow_html=True)
                 st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Prévia: Performance do Ensemble de Modelos (ROC-AUC)</p>", unsafe_allow_html=True)
                 
-                # CORREÇÃO DO CAMINHO DA IMAGEM DE MODELAGEM
                 try: 
                     st.image("notebooks/Streamlit/img_modelagem.png", use_container_width=True)
                 except: 
@@ -285,7 +371,6 @@ else:
             if st.button("← Voltar para a Central", key="voltar_home"): mudar_pagina("Home"); st.rerun()
                 
         st.markdown("<h1 style='text-align: center; margin-top: -10px;'>💡 Principais Insights da Análise Exploratória</h1>", unsafe_allow_html=True)
-        
         st.markdown("<p style='text-align: center; font-size: 1.1rem; margin-bottom: 30px;'>Análise prática dos 6 perfis comportamentais (K-Means) segmentados pela base histórica.</p>", unsafe_allow_html=True)
 
         col_risco, col_fiel = st.columns(2, gap="large")
@@ -480,11 +565,6 @@ else:
             else:
                 df_modelo = st.session_state['df_res']
                 total_clientes = len(df_modelo)
-                
-                # Distribuição predita dinâmica baseada nos dados recém-enviados
-                qtd_churn = len(df_modelo[df_modelo['Probabilidade (%)'] >= 50.0])
-                qtd_retidos = total_clientes - qtd_churn
-                taxa_churn_predita = (qtd_churn / total_clientes) * 100 if total_clientes > 0 else 0
 
                 # ==========================================================
                 # 🚨 INSIRA AQUI OS VALORES REAIS DO SEU MODELO DO VS CODE 🚨
@@ -570,7 +650,6 @@ else:
                     
                     # ==========================================================
                     # 🚨 INSIRA AQUI OS DADOS REAIS DA SUA CURVA DE GANHO (Eixo Y)
-                    # O "Modelo Predito" representa a porcentagem de churns encontrados
                     # ==========================================================
                     df_gains = pd.DataFrame({
                         "% da Base Abordada": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
@@ -580,7 +659,6 @@ else:
 
                     fig_gains = go.Figure()
                     
-                    # Linha do Modelo
                     fig_gains.add_trace(go.Scatter(
                         x=df_gains["% da Base Abordada"], 
                         y=df_gains["Modelo Predito"],
@@ -590,7 +668,6 @@ else:
                         marker=dict(size=6, color='#2ecc71')
                     ))
                     
-                    # Linha Aleatória (Baseline)
                     fig_gains.add_trace(go.Scatter(
                         x=df_gains["% da Base Abordada"], 
                         y=df_gains["Aleatório (Baseline)"],
@@ -599,7 +676,6 @@ else:
                         line=dict(color='#e74c3c', width=2, dash='dash')
                     ))
 
-                    # AQUI ESTÁ A CORREÇÃO DA SINTAXE DO PLOTLY!
                     fig_gains.update_layout(
                         paper_bgcolor='rgba(0,0,0,0)', 
                         plot_bgcolor='rgba(0,0,0,0)',
