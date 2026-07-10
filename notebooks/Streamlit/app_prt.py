@@ -234,7 +234,7 @@ else:
                                 except Exception as e: 
                                     st.error(f"Erro ao unificar as bases: {e}")
                 
-                # --- EXIBIÇÃO DA TABELA (SEM O ERRO DO PANDAS .STYLE) E INSIGHTS ---
+                # --- EXIBIÇÃO DA TABELA INTERATIVA COM CORES E CLIQUE ---
                 if 'df_res' in st.session_state:
                     df_res_atual = st.session_state['df_res'].copy()
                     
@@ -251,57 +251,95 @@ else:
                     st.success(f"✅ Análise concluída! {len(df_res_atual):,} clientes processados e unificados.")
                     st.write("<br>", unsafe_allow_html=True)
                     
-                    busca = st.text_input("🔍 Procurar ID específico (Tabela):")
+                    busca = st.text_input("🔍 Procurar ID específico (Opcional):")
                     
                     df_tabela = df_res_atual.copy()
                     if busca: 
                         df_tabela = df_tabela[df_tabela[coluna_id].astype(str).str.contains(busca, case=False, na=False)]
                     
-                    # CORREÇÃO DEFINITIVA DO ERRO: Usa renderização nativa do Streamlit
                     if df_tabela.empty:
                         st.warning("Nenhum cliente encontrado com o ID procurado.")
                     else:
-                        st.dataframe(
-                            df_tabela, 
-                            height=212, 
+                        # Reseta o index da tabela
+                        df_tabela = df_tabela.reset_index(drop=True)
+                        
+                        # Função de coloração específica para os clusters (Aplica apenas na Probabilidade e no Cluster)
+                        def aplicar_cores_clusters(row):
+                            c = row['Cluster']
+                            cor = ''
+                            if c == 0: cor = 'background-color: rgba(52, 152, 219, 0.4);'   # Azul
+                            elif c == 1: cor = 'background-color: rgba(243, 156, 18, 0.4);' # Laranja Claro
+                            elif c == 2: cor = 'background-color: rgba(39, 174, 96, 0.4);'  # Verde Escuro
+                            elif c == 3: cor = 'background-color: rgba(192, 57, 43, 0.5);'  # Vermelho
+                            elif c == 4: cor = 'background-color: rgba(46, 204, 113, 0.4);' # Verde Claro
+                            elif c == 5: cor = 'background-color: rgba(230, 126, 34, 0.4);' # Laranja Escuro
+                            
+                            estilos = ['' for _ in row.index]
+                            for i, col in enumerate(row.index):
+                                if col in ['Cluster', 'Probabilidade (%)']:
+                                    estilos[i] = f"{cor} color: white; font-weight: bold;"
+                            return estilos
+
+                        # Aplica o estilo e esconde o index nativamente no pandas para evitar o bug do Streamlit
+                        df_styled = df_tabela.style.apply(aplicar_cores_clusters, axis=1).hide(axis="index")
+                        
+                        st.markdown("<p style='font-size: 0.95rem; color: #A0AABF;'>🖱️ <b>Clique em qualquer linha da tabela abaixo</b> para ver a ação recomendada para aquele cliente.</p>", unsafe_allow_html=True)
+                        
+                        # Tabela Interativa (on_select aciona o evento de clique)
+                        evento = st.dataframe(
+                            df_styled, 
+                            height=250, 
                             use_container_width=True,
-                            hide_index=True # Agora funciona perfeitamente!
+                            on_select="rerun",
+                            selection_mode="single_row"
                         )
                     
                     st.divider()
                     
-                    # QUADRADO DE INSIGHTS
+                    # QUADRADO DE INSIGHTS BASEADO NO CLIQUE DA TABELA
                     st.markdown("<h3 style='color: #4CAF50; margin-top: 0; font-size: 1.2rem;'>💡 Ação de Retenção Recomendada</h3>", unsafe_allow_html=True)
                     
-                    # Dicionário de Insights para os 6 Clusters
-                    insights_6_clusters = {
-                        0: "Grupo pequeno e misto. Evidência do impacto do tratamento humanitário: coberturas variadas, mas NPS alto. Focar na experiência do cliente para reduzir tendência ao churn.",
-                        1: "Perfil em transição (moderado). Típico caso de cliente que pode se tornar grande parceiro se nutrido para engajamento humanitário e convertido para apólices variadas/premium.",
-                        2: "Elite da base (Premium Fidelizados). Risco quase nulo. É o perfil mais fiel, focar em manutenção de relacionamento e benefícios exclusivos.",
-                        3: "Risco Crítico Imediato. Maior prioridade de retenção. Grande número de apólices do mesmo tipo e pouco tempo de casa. Investir em variedade das apólices e fidelização.",
-                        4: "Tradicionais Consolidados. Clientes fiéis com NPS muito elevado. Focar em cross-sell e fidelização, pois o tempo de fidelidade compensa possíveis coberturas inferiores.",
-                        5: "Desengajados Críticos. Menor satisfação (NPS baixo) e pagamentos atrasados. Foco total na relação com o cliente: contato humano atencioso e entender a causa dos atrasos."
-                    }
-
-                    lista_ids_dropdown = df_res_atual[coluna_id].astype(str).tolist()
-                    id_selecionado = st.selectbox("Selecione um ID para ver a ação recomendada:", [""] + lista_ids_dropdown)
-
-                    if id_selecionado != "":
-                        dados_cliente = df_res_atual[df_res_atual[coluna_id].astype(str) == id_selecionado].iloc[0]
+                    linhas_selecionadas = evento.selection.rows
+                    
+                    if len(linhas_selecionadas) > 0:
+                        # Extrai os dados do cliente clicado
+                        indice = linhas_selecionadas[0]
+                        dados_cliente = df_tabela.iloc[indice]
+                        id_selecionado = dados_cliente[coluna_id]
                         cluster_do_cliente = int(dados_cliente['Cluster'])
+                        prob_cliente = float(dados_cliente['Probabilidade (%)'])
+                        
+                        # Dicionário de Insights para os 6 Clusters
+                        insights_6_clusters = {
+                            0: "Grupo pequeno e misto. Evidência do impacto do tratamento humanitário: coberturas variadas, mas NPS alto. Focar na experiência do cliente para reduzir tendência ao churn.",
+                            1: "Perfil em transição (moderado). Típico caso de cliente que pode se tornar grande parceiro se nutrido para engajamento humanitário e convertido para apólices variadas/premium.",
+                            2: "Elite da base (Premium Fidelizados). Risco quase nulo. É o perfil mais fiel, focar em manutenção de relacionamento e benefícios exclusivos.",
+                            3: "Risco Crítico Imediato. Maior prioridade de retenção. Grande número de apólices do mesmo tipo e pouco tempo de casa. Investir em variedade das apólices e fidelização.",
+                            4: "Tradicionais Consolidados. Clientes fiéis com NPS muito elevado. Focar em cross-sell e fidelização, pois o tempo de fidelidade compensa possíveis coberturas inferiores.",
+                            5: "Desengajados Críticos. Menor satisfação (NPS baixo) e pagamentos atrasados. Foco total na relação com o cliente: contato humano atencioso e entender a causa dos atrasos."
+                        }
+                        
+                        # Dicionário de cores para a borda do cartão acompanhar a cor do cluster
+                        cores_borda = {
+                            0: "#3498db", 1: "#f39c12", 2: "#27ae60", 
+                            3: "#c0392b", 4: "#2ecc71", 5: "#e67e22"
+                        }
                         
                         insight_texto = insights_6_clusters.get(cluster_do_cliente, "Insight não definido para este cluster.")
+                        cor_ativa = cores_borda.get(cluster_do_cliente, "#2ecc71")
                         
                         st.markdown(f"""
-                        <div style="background: rgba(46, 204, 113, 0.15); border-left: 5px solid #2ecc71; border-radius: 6px; padding: 15px; margin-top: 10px;">
-                            <p style="margin: 0; color: #2ecc71; font-weight: bold; font-size: 1rem; margin-bottom: 5px;">
-                                Estratégia para o Cluster {cluster_do_cliente}:
+                        <div style="background: rgba(25, 40, 79, 0.4); border-left: 5px solid {cor_ativa}; border-radius: 6px; padding: 15px; margin-top: 10px;">
+                            <p style="margin: 0; color: {cor_ativa}; font-weight: bold; font-size: 1rem; margin-bottom: 5px;">
+                                Cliente {id_selecionado} (Cluster {cluster_do_cliente}) | Risco: {prob_cliente:.1f}%
                             </p>
                             <p style="margin: 0; color: #E0E0E0; font-size: 0.95rem; line-height: 1.5;">
                                 {insight_texto}
                             </p>
                         </div>
                         """, unsafe_allow_html=True)
+                    else:
+                        st.info("👆 Selecione um cliente clicando em uma linha da tabela acima para visualizar os insights.")
                         
         with c_dir:
             with st.container(border=True):
