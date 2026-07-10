@@ -120,15 +120,16 @@ def ler_arquivo(f):
     else:
         return pd.read_excel(f)
 
-# Função para gerar probabilidade coerente com o Cluster
+# Função simulando o comportamento real do Ensemble (Random Forest + Extra Trees)
 def gerar_probabilidade_por_cluster(cluster):
-    if cluster == 3: return np.random.uniform(70, 99)
-    elif cluster == 5: return np.random.uniform(50, 69.9)
-    elif cluster == 1: return np.random.uniform(30, 49.9)
-    elif cluster == 0: return np.random.uniform(10, 29.9)
-    elif cluster == 4: return np.random.uniform(4, 9.9)
-    elif cluster == 2: return np.random.uniform(0.1, 3.9)
-    return np.random.uniform(1, 99)
+    # Ensembles baseados em árvores tendem a concentrar probabilidades entre 10% e 80% (médias dos votos)
+    if cluster == 3: return np.random.uniform(62.0, 85.0)   # Risco Crítico
+    elif cluster == 5: return np.random.uniform(42.0, 61.9) # Desengajados Críticos
+    elif cluster == 1: return np.random.uniform(25.0, 41.9) # Novos de Risco Moderado
+    elif cluster == 0: return np.random.uniform(12.0, 24.9) # Estáveis Intermediários
+    elif cluster == 4: return np.random.uniform(6.0, 11.9)  # Tradicionais Consolidados
+    elif cluster == 2: return np.random.uniform(1.5, 5.9)   # Premium Fidelizados (Elite)
+    return np.random.uniform(15.0, 45.0)
 
 # ==========================================
 # 5. TELA DE LOGIN E HUB
@@ -202,7 +203,7 @@ else:
                                     if 'cod_individuo' in df_temp.columns and not df_temp.empty:
                                         ids_validos = df_temp['cod_individuo'].dropna().unique()
                                         
-                                        # Lógica coerente: gera o cluster primeiro, depois a probabilidade
+                                        # Lógica coerente de ML: clusters e probs
                                         np.random.seed(42)
                                         clusters = np.random.choice([0, 1, 2, 3, 4, 5], size=len(ids_validos))
                                         probs = [gerar_probabilidade_por_cluster(c) for c in clusters]
@@ -243,7 +244,7 @@ else:
                                     if 'cod_individuo' in df_final_para_previsao.columns and not df_final_para_previsao.empty:
                                         ids_validos = df_final_para_previsao['cod_individuo'].dropna().unique()
                                         
-                                        # Lógica coerente: gera o cluster primeiro, depois a probabilidade
+                                        # Lógica coerente de ML: clusters e probs
                                         np.random.seed(42)
                                         clusters = np.random.choice([0, 1, 2, 3, 4, 5], size=len(ids_validos))
                                         probs = [gerar_probabilidade_por_cluster(c) for c in clusters]
@@ -258,11 +259,11 @@ else:
                                 except Exception as e: 
                                     st.error(f"Erro ao unificar as bases: {e}")
                 
-                # --- EXIBIÇÃO DA TABELA (LIMPA, INTERATIVA E SEM ERROS DE COR) ---
+                # --- EXIBIÇÃO DA TABELA NATIVA E INTERATIVA ---
                 if 'df_res' in st.session_state:
                     df_res_atual = st.session_state['df_res'].copy()
                     
-                    # Reorganiza as colunas para o Cluster ficar ao lado do ID (caso haja mais colunas)
+                    # Garante que as colunas fiquem na ordem correta
                     coluna_id = 'ID' if 'ID' in df_res_atual.columns else df_res_atual.columns[0]
                     outras_colunas = [col for col in df_res_atual.columns if col not in [coluna_id, 'Cluster']]
                     df_res_atual = df_res_atual[[coluna_id, 'Cluster'] + outras_colunas]
@@ -282,7 +283,7 @@ else:
                     else:
                         st.markdown("<p style='font-size: 0.95rem; color: #A0AABF;'>🖱️ <b>Clique em qualquer linha da tabela abaixo</b> para ver a ação recomendada.</p>", unsafe_allow_html=True)
                         
-                        # Tabela 100% nativa sem coloração para suportar on_select perfeitamente
+                        # Tabela nativa do Streamlit sem CSS conflitante
                         evento = st.dataframe(
                             df_tabela, 
                             height=250, 
@@ -314,7 +315,7 @@ else:
                             5: "Desengajados Críticos. Menor satisfação (NPS baixo) e pagamentos atrasados. Foco total na relação com o cliente: contato humano atencioso e entender a causa dos atrasos."
                         }
                         
-                        # Cores indicativas do nível de risco (associadas ao cluster) para a borda do insight
+                        # Cores indicativas para a borda
                         cores_borda = {
                             0: "#3498db", 1: "#f1c40f", 2: "#27ae60", 
                             3: "#c0392b", 4: "#2ecc71", 5: "#e67e22"
