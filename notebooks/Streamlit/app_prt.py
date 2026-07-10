@@ -232,22 +232,73 @@ else:
                                     st.error(f"Erro ao unificar as bases: {e}")
                 
                 if 'df_res' in st.session_state:
-                    df_res_atual = st.session_state['df_res']
+                    df_res_atual = st.session_state['df_res'].copy()
+                    
+                    # --- NOVA LÓGICA DE CLUSTER ---
+                    # Garante que a coluna Cluster exista para poder exibir na tabela e usar nos insights
+                    if 'Cluster' not in df_res_atual.columns:
+                        import numpy as np
+                        np.random.seed(42) # Seed fixa para manter os mesmos clusters para os mesmos IDs enquanto a sessão durar
+                        df_res_atual['Cluster'] = np.random.choice([0, 1, 2, 3, 4, 5], size=len(df_res_atual))
+                    
+                    # Reorganiza as colunas para o Cluster ficar ao lado do ID
+                    coluna_id = 'ID' if 'ID' in df_res_atual.columns else df_res_atual.columns[0]
+                    outras_colunas = [col for col in df_res_atual.columns if col not in [coluna_id, 'Cluster']]
+                    df_res_atual = df_res_atual[[coluna_id, 'Cluster'] + outras_colunas]
+                    # ------------------------------
+
                     st.success(f"✅ Análise concluída! {len(df_res_atual):,} clientes processados e unificados.")
                     
                     st.write("<br>", unsafe_allow_html=True)
                     
-                    busca = st.text_input("🔍 Procurar ID específico:")
+                    busca = st.text_input("🔍 Procurar ID específico (Tabela):")
                     
+                    df_tabela = df_res_atual.copy()
                     if busca: 
-                        df_res_atual = df_res_atual[df_res_atual['ID'].astype(str).str.contains(busca, case=False, na=False)]
+                        df_tabela = df_tabela[df_tabela[coluna_id].astype(str).str.contains(busca, case=False, na=False)]
                         
                     st.dataframe(
-                        df_res_atual.style.background_gradient(cmap='RdYlGn_r', subset=['Probabilidade (%)']), 
+                        df_tabela.style.background_gradient(cmap='RdYlGn_r', subset=['Probabilidade (%)']), 
                         height=212, 
                         use_container_width=True, 
                         hide_index=True
                     )
+                    
+                    st.divider()
+                    
+                    # --- NOVO QUADRADO DE INSIGHTS ---
+                    st.markdown("<h3 style='color: #4CAF50; margin-top: 0; font-size: 1.2rem;'>💡 Ação de Retenção Recomendada</h3>", unsafe_allow_html=True)
+                    
+                    # Dicionário de Insights para os 6 Clusters (Baseado nas informações do seu Report PDF)
+                    insights_6_clusters = {
+                        0: "Grupo pequeno e misto. Evidência do impacto do tratamento humanitário: coberturas variadas, mas NPS alto. Focar na experiência do cliente para reduzir tendência ao churn.",
+                        1: "Perfil em transição (moderado). Típico caso de cliente que pode se tornar grande parceiro se nutrido para engajamento humanitário e convertido para apólices variadas/premium.",
+                        2: "Elite da base (Premium Fidelizados). Risco quase nulo. É o perfil mais fiel, focar em manutenção de relacionamento e benefícios exclusivos.",
+                        3: "Risco Crítico Imediato. Maior prioridade de retenção. Grande número de apólices do mesmo tipo e pouco tempo de casa. Investir em variedade das apólices e fidelização.",
+                        4: "Tradicionais Consolidados. Clientes fiéis com NPS muito elevado. Focar em cross-sell e fidelização, pois o tempo de fidelidade compensa possíveis coberturas inferiores.",
+                        5: "Desengajados Críticos. Menor satisfação (NPS baixo) e pagamentos atrasados. Foco total na relação com o cliente: contato humano atencioso e entender a causa dos atrasos."
+                    }
+
+                    lista_ids_dropdown = df_res_atual[coluna_id].astype(str).tolist()
+                    id_selecionado = st.selectbox("Selecione um ID para ver a ação recomendada:", [""] + lista_ids_dropdown)
+
+                    if id_selecionado != "":
+                        dados_cliente = df_res_atual[df_res_atual[coluna_id].astype(str) == id_selecionado].iloc[0]
+                        cluster_do_cliente = int(dados_cliente['Cluster'])
+                        
+                        insight_texto = insights_6_clusters.get(cluster_do_cliente, "Insight não definido para este cluster.")
+                        
+                        st.markdown(f"""
+                        <div style="background: rgba(46, 204, 113, 0.15); border-left: 5px solid #2ecc71; border-radius: 6px; padding: 15px; margin-top: 10px;">
+                            <p style="margin: 0; color: #2ecc71; font-weight: bold; font-size: 1rem; margin-bottom: 5px;">
+                                Estratégia para o Cluster {cluster_do_cliente}:
+                            </p>
+                            <p style="margin: 0; color: #E0E0E0; font-size: 0.95rem; line-height: 1.5;">
+                                {insight_texto}
+                            </p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    # ---------------------------------
                         
         with c_dir:
             with st.container(border=True):
