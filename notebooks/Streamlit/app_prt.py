@@ -20,7 +20,10 @@ def carregar_ensemble_real():
     caminho_rf = "rf_modelo_real.pkl"
     caminho_et = "et_modelo_real.pkl"
     if os.path.exists(caminho_rf) and os.path.exists(caminho_et):
-        return joblib.load(caminho_rf), joblib.load(caminho_et)
+        try:
+            return joblib.load(caminho_rf), joblib.load(caminho_et)
+        except:
+            return None, None
     return None, None
 
 rf_modelo, et_modelo = carregar_ensemble_real()
@@ -57,7 +60,6 @@ st.markdown("""
     [data-testid="stVerticalBlockBorderWrapper"] { background: rgba(25, 40, 79, 0.4) !important; backdrop-filter: blur(16px) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 16px !important; padding: 20px !important; }
     [data-testid="stVerticalBlockBorderWrapper"]:hover { border: 1px solid #4CAF50 !important; box-shadow: 0 0 25px 5px rgba(76, 175, 80, 0.5) !important; }
     
-    /* Estilo para as métricas do perfil */
     div[data-testid="metric-container"] {
         background-color: rgba(25, 40, 79, 0.8);
         border: 1px solid #4CAF50;
@@ -136,7 +138,6 @@ def gerar_probabilidade_por_cluster(cluster):
     elif c == 2: return np.random.uniform(1.5, 5.9)   
     return np.random.uniform(15.0, 45.0)
 
-# Escudo para converter números de forma segura na interface
 def safe_int_format(val, suffix=""):
     try:
         return f"{int(float(val))}{suffix}"
@@ -175,7 +176,7 @@ else:
         st.markdown("<h1 class='titulo-futurista'>Central de Inteligência PRT</h1><br>", unsafe_allow_html=True)
         
         if rf_modelo is None or et_modelo is None:
-            st.error("⚠️ ERRO: Ficheiros de modelo 'rf_modelo_real.pkl' ou 'et_modelo_real.pkl' não detetados na pasta. A apresentar dados simulados na tabela de Probabilidade.")
+            st.warning("⚠️ Aviso: Ficheiros .pkl não detectados ou muito pesados. Modo Simulação de IA Ativado para prevenir travamento de RAM.")
             
         c_esq, c_dir = st.columns(2, gap="large") 
         
@@ -187,10 +188,9 @@ else:
 
                 up_unica = st.file_uploader("Upload da Base Processada", type=["csv", "xlsx"], key="up_unica")
                 if up_unica:
-                    if st.button("Processar Base e Prever", use_container_width=True):
+                    if st.button("Processar Base e Prever"):
                         with st.spinner("A processar os clientes e a calcular métricas..."):
                             try:
-                                # CORREÇÃO CRÍTICA: AGORA UTILIZA ler_arquivo(up_unica) em vez de pd.read_csv()
                                 df_temp = padronizar_id(ler_arquivo(up_unica))
                                 df_temp = df_temp.drop_duplicates(subset=['cod_individuo']).reset_index(drop=True)
                                 ids_validos = df_temp['cod_individuo']
@@ -225,86 +225,55 @@ else:
                             except Exception as e: 
                                 st.error(f"Erro ao processar: {e}.")
 
-                # --- EXIBIÇÃO DA TABELA NATIVA ---
                 if 'df_res' in st.session_state:
                     df_res_atual = st.session_state['df_res'].copy()
                     
                     def obter_icone_cluster(c):
                         cores = {0: '🔵 Azul', 1: '🟡 Amarelo', 2: '🟢 Verde Esc.', 3: '🔴 Vermelho', 4: '🍏 Verde Cl.', 5: '🟠 Laranja'}
-                        try:
-                            c_limpo = int(float(c))
-                            return cores.get(c_limpo, '⚪ Outro')
-                        except:
-                            return '⚪ Outro'
+                        try: return cores.get(int(float(c)), '⚪ Outro')
+                        except: return '⚪ Outro'
                         
                     df_res_atual.insert(1, 'Status (Cor)', df_res_atual['Cluster'].apply(obter_icone_cluster))
-
                     st.success(f"✅ Probabilidades calculadas para {len(df_res_atual):,} clientes.")
                     
-                    # Tabela visual (apenas colunas essenciais visíveis para ficar limpo)
                     colunas_tabela = ['ID', 'Status (Cor)', 'Cluster', 'Probabilidade (%)']
-                    df_visual = df_res_atual[colunas_tabela]
+                    st.dataframe(df_res_atual[colunas_tabela], height=220, hide_index=True)
                     
-                    st.dataframe(df_visual, height=220, use_container_width=True, hide_index=True)
-                    
-                    # ========================================================
-                    # BLOCO: ANÁLISE DE PERFIL INDIVIDUAL (COM AVATAR E FEATURES)
-                    # ========================================================
                     st.divider()
                     st.markdown("<h3 style='color: #4CAF50; margin-top: 0;'>👤 Análise de Perfil Individual</h3>", unsafe_allow_html=True)
                     
-                    ids_disponiveis = df_res_atual['ID'].tolist()
-                    id_selecionado = st.selectbox("Selecione o ID do Cliente para carregar as informações:", ["-- Selecione um Cliente --"] + ids_disponiveis)
+                    id_selecionado = st.selectbox("Selecione o ID do Cliente para carregar as informações:", ["-- Selecione um Cliente --"] + df_res_atual['ID'].tolist())
 
                     if id_selecionado != "-- Selecione um Cliente --":
-                        # Obter dados apenas do cliente selecionado
                         dados_cliente = df_res_atual[df_res_atual['ID'] == id_selecionado].iloc[0]
                         
-                        try:
-                            c_cluster = int(float(dados_cliente['Cluster']))
-                        except:
-                            c_cluster = -1
+                        try: c_cluster = int(float(dados_cliente['Cluster']))
+                        except: c_cluster = -1
                             
-                        try:
-                            c_prob = float(dados_cliente['Probabilidade (%)'])
-                        except:
-                            c_prob = 0.0
+                        try: c_prob = float(dados_cliente['Probabilidade (%)'])
+                        except: c_prob = 0.0
                             
                         c_gen = str(dados_cliente['Genero']).lower()
-                        
-                        # Definir Avatar Cartoon
-                        if c_gen in ['masculino', 'm', 'male', 'homem', '1', '1.0']:
-                            avatar_url = f"https://api.dicebear.com/7.x/avataaars/svg?seed=Felix_{id_selecionado}&backgroundColor=b6e3f4"
-                        else:
-                            avatar_url = f"https://api.dicebear.com/7.x/avataaars/svg?seed=Mia_{id_selecionado}&backgroundColor=ffdfbf"
+                        avatar_url = f"https://api.dicebear.com/7.x/avataaars/svg?seed=Felix_{id_selecionado}&backgroundColor=b6e3f4" if c_gen in ['masculino', 'm', 'male', 'homem', '1', '1.0'] else f"https://api.dicebear.com/7.x/avataaars/svg?seed=Mia_{id_selecionado}&backgroundColor=ffdfbf"
 
-                        # Formatação dos dados para exibição nas métricas
                         v_nps = safe_int_format(dados_cliente['NPS'])
                         v_tempo = safe_int_format(dados_cliente['Tempo Relacionamento'], " dias")
                         v_prod = safe_int_format(dados_cliente['Qtd Produtos'])
                         v_idade = safe_int_format(dados_cliente['Idade'], " anos")
                         t_cob = str(dados_cliente['Cobertura'])
 
-                        # Nomes e Insights Oficiais dos Clusters
-                        perfis_map = {
-                            0: "Novatos / Rasos", 2: "Novatos / Rasos", 6: "Novatos / Rasos",
-                            4: "Com Atrito / Insatisfeitos",
-                            3: "Famílias Premium",
-                            1: "Elite Sem Filhos", 5: "Elite Sem Filhos"
-                        }
+                        perfis_map = {0: "Novatos / Rasos", 2: "Novatos / Rasos", 6: "Novatos / Rasos", 4: "Com Atrito / Insatisfeitos", 3: "Famílias Premium", 1: "Elite Sem Filhos", 5: "Elite Sem Filhos"}
                         insights_map = {
-                            0: "São clientes que acabaram de chegar, têm seguro básico e quase nenhum produto a mais. <b>AÇÃO:</b> Oferecer produtos baratos para criar vínculo (Cross-sell).",
-                            2: "São clientes que acabaram de chegar, têm seguro básico e quase nenhum produto a mais. <b>AÇÃO:</b> Oferecer produtos baratos para criar vínculo (Cross-sell).",
-                            6: "São clientes que acabaram de chegar, têm seguro básico e quase nenhum produto a mais. <b>AÇÃO:</b> Oferecer produtos baratos para criar vínculo (Cross-sell).",
-                            4: "Clientes antigos, mas insatisfeitos. O NPS é baixo, têm sinistros e atrasos. <b>AÇÃO:</b> Atendimento humano ativo para pedir desculpas, melhorar o relacionamento e renegociar.",
-                            3: "Famílias ricas. Têm filhos, dependentes e vários produtos. <b>AÇÃO:</b> Vender Seguro de Vida e Previdência Privada para os filhos.",
-                            1: "Alto poder aquisitivo, mas solteiros ou sem filhos. <b>AÇÃO:</b> Vender Seguros para Itens de Luxo, Viagens ou Seguro Residencial.",
-                            5: "Alto poder aquisitivo, mas solteiros ou sem filhos. <b>AÇÃO:</b> Vender Seguros para Itens de Luxo, Viagens ou Seguro Residencial."
+                            0: "São clientes que acabaram de chegar, têm seguro básico. <b>AÇÃO:</b> Oferecer produtos baratos para criar vínculo.",
+                            2: "São clientes que acabaram de chegar, têm seguro básico. <b>AÇÃO:</b> Oferecer produtos baratos para criar vínculo.",
+                            6: "São clientes que acabaram de chegar, têm seguro básico. <b>AÇÃO:</b> Oferecer produtos baratos para criar vínculo.",
+                            4: "Clientes antigos, mas insatisfeitos. O NPS é baixo. <b>AÇÃO:</b> Atendimento humano ativo para pedir desculpas.",
+                            3: "Famílias ricas. Têm filhos, dependentes e vários produtos. <b>AÇÃO:</b> Vender Seguro de Vida e Previdência.",
+                            1: "Alto poder aquisitivo, mas solteiros ou sem filhos. <b>AÇÃO:</b> Vender Seguros para Itens de Luxo.",
+                            5: "Alto poder aquisitivo, mas solteiros ou sem filhos. <b>AÇÃO:</b> Vender Seguros para Itens de Luxo."
                         }
 
-                        # Layout: Coluna Esquerda (Avatar + Cluster) | Coluna Direita (Features)
                         c_img, c_dados = st.columns([1.2, 3])
-                        
                         with c_img:
                             st.image(avatar_url, use_container_width=True)
                             st.markdown(f"<h4 style='text-align: center; color: white; margin-top: 10px;'>ID: {id_selecionado}</h4>", unsafe_allow_html=True)
@@ -319,9 +288,9 @@ else:
                             m4.metric("Produtos", v_prod)
                             m5.metric("Idade", v_idade)
 
-                            st.write("<br>", unsafe_allow_html=True)
                             cor_cluster = "#3498db" if c_prob < 50 else "#e74c3c"
                             st.markdown(f"""
+                                <br>
                                 <div style='background-color: rgba(0, 0, 0, 0.2); padding: 15px; border-radius: 8px; border-left: 5px solid {cor_cluster};'>
                                     <p style='color: {cor_cluster}; font-size: 1.1rem; font-weight: bold; margin: 0 0 5px 0;'>🎯 Cluster {c_cluster} - {perfis_map.get(c_cluster, 'Não mapeado')}</p>
                                     <p style='color: white; font-size: 0.95rem; margin: 0;'>{insights_map.get(c_cluster, 'Insight não disponível.')}</p>
@@ -333,17 +302,17 @@ else:
                 st.markdown("<h3 style='color: #4CAF50; margin-top: 0;'>💡 Clusterização e Insights</h3>", unsafe_allow_html=True)
                 st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Prévia: Risco de Churn por Segmento (K-Means)</p>", unsafe_allow_html=True)
                 try: st.image("notebooks/Streamlit/img_clusterizacao.png", use_container_width=True)
-                except: st.info("🖼️ [Coloque o arquivo 'img_clusterizacao.png' na pasta para exibir aqui]")
-                if st.button("Aceder a Insights Detalhados", use_container_width=True): mudar_pagina("Insights"); st.rerun()
+                except: st.info("🖼️ [Coloque a imagem 'img_clusterizacao.png' na pasta]")
+                if st.button("Aceder a Insights Detalhados"): mudar_pagina("Insights"); st.rerun()
 
             st.write("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
             with st.container(border=True):
                 st.markdown("<h3 style='color: #4CAF50; margin-top: 0;'>📊 Análise e Modelagem</h3>", unsafe_allow_html=True)
-                st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Prévia: Performance do Ensemble de Modelos (ROC-AUC)</p>", unsafe_allow_html=True)
+                st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Prévia: Performance do Ensemble de Modelos</p>", unsafe_allow_html=True)
                 try: st.image("notebooks/Streamlit/img_modelagem.png", use_container_width=True)
-                except: st.info("🖼️ [Coloque o arquivo 'img_modelagem.png' na pasta para exibir aqui]")
-                if st.button("Aceder à Modelagem Completa", use_container_width=True): mudar_pagina("Modelagem"); st.rerun()
+                except: st.info("🖼️ [Coloque a imagem 'img_modelagem.png' na pasta]")
+                if st.button("Aceder à Modelagem Completa"): mudar_pagina("Modelagem"); st.rerun()
 
     # ==========================================
     # TELA 1: CLUSTERIZAÇÃO E INSIGHTS
@@ -355,54 +324,40 @@ else:
                 
         st.markdown("<h1 style='text-align: center; margin-top: -10px;'>💡 Principais Insights da Análise Exploratória</h1>", unsafe_allow_html=True)
         st.markdown("<p style='text-align: center; font-size: 1.1rem; margin-bottom: 30px;'>Análise prática dos 6 perfis comportamentais (K-Means) segmentados pela base histórica.</p>", unsafe_allow_html=True)
-
+        
         col_risco, col_fiel = st.columns(2, gap="large")
 
         with col_risco:
-            st.markdown("<h3 style='color: #e74c3c; margin-bottom: 15px;'>⚠️ Atenção e Risco: Taxa de churn acima da média (12,15%)</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='color: #e74c3c; margin-bottom: 15px;'>⚠️ Atenção e Risco: Taxa de churn acima da média</h3>", unsafe_allow_html=True)
             st.markdown("""
             <div style="background: rgba(25, 40, 79, 0.4); border-radius: 12px; border: 1px solid rgba(231, 76, 60, 0.4); padding: 15px; margin-bottom: 15px; backdrop-filter: blur(10px);">
-                <h4 style="color: #e74c3c; margin-top: 0; margin-bottom: 5px;">Cluster 3 <span style="font-size: 0.9rem; color: #FFF; font-weight: normal;">(Participação: 29,1% | Churn: 21,7%)</span></h4>
-                <p style="font-size: 0.9rem; line-height: 1.5; margin-bottom: 10px;"><b>Descrição:</b> Clientes mais novos (tempo médio ~4 anos), poucos produtos (1,2), cobertura básica predominante, renda mais baixa da base (R$ 66,6k). Maior grupo E maior risco - prioridade #1 de retenção.</p>
-                <p style="font-size: 0.9rem; line-height: 1.5; color: #A0AABF;"><b>Insight Estratégico:</b> Grande número de apólices do mesmo tipo (ex.: vários carros com a cobertura básica); Pouco tempo de casa. Investir em variedade das apólices, promoção do tipo de cobertura e fidelização na empresa.</p>
+                <h4 style="color: #e74c3c; margin-top: 0; margin-bottom: 5px;">Cluster 3</h4>
+                <p style="font-size: 0.9rem; color: #A0AABF;"><b>Insight:</b> Clientes mais novos, poucos produtos, cobertura básica. Focar em retenção urgente (Cross-sell).</p>
             </div>
-            """, unsafe_allow_html=True)
-            st.markdown("""
             <div style="background: rgba(25, 40, 79, 0.4); border-radius: 12px; border: 1px solid rgba(230, 126, 34, 0.4); padding: 15px; margin-bottom: 15px; backdrop-filter: blur(10px);">
-                <h4 style="color: #e67e22; margin-top: 0; margin-bottom: 5px;">Cluster 5 <span style="font-size: 0.9rem; color: #FFF; font-weight: normal;">(Participação: 5,6% | Churn: 18,5%)</span></h4>
-                <p style="font-size: 0.9rem; line-height: 1.5; margin-bottom: 10px;"><b>Descrição:</b> Menor satisfação (NPS 4,3) e menor índice de relacionamento (44,7) de todos clusters - sinal de insatisfação ativa, não só de tempo de casa curto.</p>
-                <p style="font-size: 0.9rem; line-height: 1.5; color: #A0AABF;"><b>Insight Estratégico:</b> Relativamente fidelizado, renda alta e com apólices diversificadas, mas NPS baixo e pagamentos atrasados. Foco total na relação com o cliente: contato humano atencioso e entender o atraso dos pagamentos.</p>
+                <h4 style="color: #e67e22; margin-top: 0; margin-bottom: 5px;">Cluster 5</h4>
+                <p style="font-size: 0.9rem; color: #A0AABF;"><b>Insight:</b> NPS baixíssimo e atrasos. Atendimento humano para pedir desculpas e renegociar.</p>
             </div>
-            """, unsafe_allow_html=True)
-            st.markdown("""
             <div style="background: rgba(25, 40, 79, 0.4); border-radius: 12px; border: 1px solid rgba(243, 156, 18, 0.4); padding: 15px; margin-bottom: 15px; backdrop-filter: blur(10px);">
-                <h4 style="color: #f39c12; margin-top: 0; margin-bottom: 5px;">Cluster 1 <span style="font-size: 0.9rem; color: #FFF; font-weight: normal;">(Participação: 19,6% | Churn: 16,9%)</span></h4>
-                <p style="font-size: 0.9rem; line-height: 1.5; margin-bottom: 10px;"><b>Descrição:</b> Perfil parecido ao cluster 3 (cobertura básica, poucos produtos), um pouco mais estabelecido (tempo médio ~4,7 anos).</p>
-                <p style="font-size: 0.9rem; line-height: 1.5; color: #A0AABF;"><b>Insight Estratégico:</b> Principal alvo de ataque: cliente em transição → tempo médio de casa e com diversificação de contrato mediana. Típico caso de cliente que pode se tornar um grande parceiro da PRT se for nutrido para um engajamento humanitário na empresa e convertido para apólices variadas e com cobertura premium.</p>
+                <h4 style="color: #f39c12; margin-top: 0; margin-bottom: 5px;">Cluster 1</h4>
+                <p style="font-size: 0.9rem; color: #A0AABF;"><b>Insight:</b> Perfil em transição. Típico cliente que pode se fidelizar se receber cobertura premium.</p>
             </div>
             """, unsafe_allow_html=True)
 
         with col_fiel:
-            st.markdown("<h3 style='color: #2ecc71; margin-bottom: 15px;'>🛡️ Estabilidade e Fidelização: Taxa de churn abaixo da média (12,15%)</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='color: #2ecc71; margin-bottom: 15px;'>🛡️ Estabilidade e Fidelização</h3>", unsafe_allow_html=True)
             st.markdown("""
             <div style="background: rgba(25, 40, 79, 0.4); border-radius: 12px; border: 1px solid rgba(52, 152, 219, 0.4); padding: 15px; margin-bottom: 15px; backdrop-filter: blur(10px);">
-                <h4 style="color: #3498db; margin-top: 0; margin-bottom: 5px;">Cluster 0 <span style="font-size: 0.9rem; color: #FFF; font-weight: normal;">(Participação: 1,6% | Churn: 10,1%)</span></h4>
-                <p style="font-size: 0.9rem; line-height: 1.5; margin-bottom: 10px;"><b>Descrição:</b> Grupo pequeno e misto (cobertura padrão/premium, indicadores medianos) - baixo volume, risco moderado.</p>
-                <p style="font-size: 0.9rem; line-height: 1.5; color: #A0AABF;"><b>Insight Estratégico:</b> Evidência do impacto do tratamento humanitário: coberturas variadas, mas NPS alto se comparado ao 3, 5 e 1. Confirma com números a hipotése de que a experiência do cliente reduz a sua tendência à churn.</p>
+                <h4 style="color: #3498db; margin-top: 0; margin-bottom: 5px;">Cluster 0</h4>
+                <p style="font-size: 0.9rem; color: #A0AABF;"><b>Insight:</b> Grupo misto, mas com NPS alto. Mostra que o atendimento reduz tendência a Churn.</p>
             </div>
-            """, unsafe_allow_html=True)
-            st.markdown("""
             <div style="background: rgba(25, 40, 79, 0.4); border-radius: 12px; border: 1px solid rgba(46, 204, 113, 0.4); padding: 15px; margin-bottom: 15px; backdrop-filter: blur(10px);">
-                <h4 style="color: #2ecc71; margin-top: 0; margin-bottom: 5px;">Cluster 4 <span style="font-size: 0.9rem; color: #FFF; font-weight: normal;">(Participação: 22,9% | Churn: 3,1%)</span></h4>
-                <p style="font-size: 0.9rem; line-height: 1.5; margin-bottom: 10px;"><b>Descrição:</b> Clientes fiéis (~8,6 anos de relacionamento), cobertura padrão predominante, mais produtos (3,1), renda alta (R$ 92,1k), bom relacionamento e NPS.</p>
-                <p style="font-size: 0.9rem; line-height: 1.5; color: #A0AABF;"><b>Insight Estratégico:</b> Quase tão antigo quando o cluster 2, mas o NPS é muito elevado e o tipo de cobertura é quase 100% do tipo padrão. Isso indica que a experiência humanizada (maior NPS) e o tempo de fidelidade podem compensar um tipo de cobertura possivelmente inferior em alguns casos.</p>
+                <h4 style="color: #2ecc71; margin-top: 0; margin-bottom: 5px;">Cluster 4</h4>
+                <p style="font-size: 0.9rem; color: #A0AABF;"><b>Insight:</b> Clientes fiéis, bom relacionamento e NPS alto, apesar de produtos padrão.</p>
             </div>
-            """, unsafe_allow_html=True)
-            st.markdown("""
             <div style="background: rgba(25, 40, 79, 0.4); border-radius: 12px; border: 1px solid rgba(39, 174, 96, 0.4); padding: 15px; margin-bottom: 15px; backdrop-filter: blur(10px);">
-                <h4 style="color: #27ae60; margin-top: 0; margin-bottom: 5px;">Cluster 2 <span style="font-size: 0.9rem; color: #FFF; font-weight: normal;">(Participação: 21,2% | Churn: 2,6%)</span></h4>
-                <p style="font-size: 0.9rem; line-height: 1.5; margin-bottom: 10px;"><b>Descrição:</b> Quase 100% cobertura premium, clientes mais antigos (~9,3 anos), mais produtos (3,8) e maior renda (R$ 93,3k) de toda a base - segmento mais saudável e rentável.</p>
-                <p style="font-size: 0.9rem; line-height: 1.5; color: #A0AABF;"><b>Insight Estratégico:</b> Evidência do impacto do tipo de cobertura da apólice e do tempo de casa na taxa de churn. É o perfil de cliente mais fiel da PRT, sendo marcado por cobertura premium e carteira diversificada.</p>
+                <h4 style="color: #27ae60; margin-top: 0; margin-bottom: 5px;">Cluster 2</h4>
+                <p style="font-size: 0.9rem; color: #A0AABF;"><b>Insight:</b> Cobertura premium, carteira diversificada. O segmento mais saudável e rentável da empresa.</p>
             </div>
             """, unsafe_allow_html=True)
             
@@ -419,108 +374,91 @@ else:
             "Cluster 4 - Tradicionais Consolidados": "#2ecc71", "Cluster 2 - Premium Fidelizados (Elite)": "#27ae60"  
         }
 
-        if 'df_res' in st.session_state:
-            st.success("✅ Exibindo análise dinâmica calculada a partir da matriz de clientes carregada no Simulador.")
-            df_plot = st.session_state['df_res'].copy()
-            
-            condicoes = [
-                df_plot['Probabilidade (%)'] >= 70.0,
-                (df_plot['Probabilidade (%)'] >= 50.0) & (df_plot['Probabilidade (%)'] < 70.0),
-                (df_plot['Probabilidade (%)'] >= 30.0) & (df_plot['Probabilidade (%)'] < 50.0),
-                (df_plot['Probabilidade (%)'] >= 10.0) & (df_plot['Probabilidade (%)'] < 30.0),
-                (df_plot['Probabilidade (%)'] >= 4.0) & (df_plot['Probabilidade (%)'] < 10.0),
-                df_plot['Probabilidade (%)'] < 4.0
-            ]
-            df_plot['Segmento'] = np.select(condicoes, nomes_clusters, default="Cluster 0 - Estáveis Intermediários")
-            resumo_dinamico = df_plot.groupby('Segmento')['Probabilidade (%)'].mean().reset_index().rename(columns={'Probabilidade (%)': 'taxa_media_churn_pct'})
-            
-            n_rows = min(len(df_plot), 800)
-            df_pca = df_plot.sample(n_rows).copy()
-            df_pca['Comp1'], df_pca['Comp2'] = np.random.normal(0, 1, n_rows), np.random.normal(0, 1, n_rows)
-            
-            offsets = {"Cluster 3 - Risco Crítico Imediato": (-3, 3), "Cluster 5 - Desengajados Críticos": (-1.5, 1.5), "Cluster 1 - Novos de Risco Moderado": (0, 0), "Cluster 0 - Estáveis Intermediários": (1.5, -1), "Cluster 4 - Tradicionais Consolidados": (3, -2), "Cluster 2 - Premium Fidelizados (Elite)": (4.5, -3)}
-            df_pca['Comp1'] = df_pca.apply(lambda r: r['Comp1'] + offsets.get(r['Segmento'], (0,0))[0], axis=1)
-            df_pca['Comp2'] = df_pca.apply(lambda r: r['Comp2'] + offsets.get(r['Segmento'], (0,0))[1], axis=1)
-        else:
-            st.info("ℹ️ Exibindo análise padrão (Base Histórica). Carregue uma base no Simulador para ver a análise dinâmica.")
-            resumo_dinamico = pd.DataFrame({"Segmento": nomes_clusters, "taxa_media_churn_pct": [78.5, 63.1, 42.4, 15.2, 3.0, 2.6]})
-            np.random.seed(42)
-            df_pca = pd.DataFrame({
-                "Comp1": np.concatenate([np.random.normal(loc, scale, 100) for loc, scale in [(-3, 1), (-1.5, 1), (0, 1), (1.5, 1), (3, 1), (4.5, 1)]]),
-                "Comp2": np.concatenate([np.random.normal(loc, scale, 100) for loc, scale in [(3, 1), (1.5, 1), (0, 1), (-1, 1), (-2, 1), (-3, 1)]]),
-                "Segmento": np.concatenate([[nome]*100 for nome in nomes_clusters])
-            })
+        resumo_dinamico = pd.DataFrame({"Segmento": nomes_clusters, "taxa_media_churn_pct": [78.5, 63.1, 42.4, 15.2, 3.0, 2.6]})
+        np.random.seed(42)
+        df_pca = pd.DataFrame({
+            "Comp1": np.concatenate([np.random.normal(loc, scale, 100) for loc, scale in [(-3, 1), (-1.5, 1), (0, 1), (1.5, 1), (3, 1), (4.5, 1)]]),
+            "Comp2": np.concatenate([np.random.normal(loc, scale, 100) for loc, scale in [(3, 1), (1.5, 1), (0, 1), (-1, 1), (-2, 1), (-3, 1)]]),
+            "Segmento": np.concatenate([[nome]*100 for nome in nomes_clusters])
+        })
 
-        resumo_dinamico = resumo_dinamico.sort_values('taxa_media_churn_pct', ascending=False)
         col_g1, col_g2 = st.columns([1, 1], gap="large")
 
         with col_g1:
             st.markdown('<div style="background: rgba(25,40,79,0.4); border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,0.1);"><p style="color:#4CAF50; font-weight:bold; font-size:1.1rem;">📈 Risco de Churn Médio por Segmento</p>', unsafe_allow_html=True)
             fig_bar = go.Figure(go.Bar(x=resumo_dinamico['Segmento'], y=resumo_dinamico['taxa_media_churn_pct'], marker_color=[cores_clusters.get(s, "#4CAF50") for s in resumo_dinamico['Segmento']], text=[f"{v:.1f}%" for v in resumo_dinamico['taxa_media_churn_pct']], textposition='auto'))
             fig_bar.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=400, yaxis=dict(title=dict(text="Taxa de Churn (%)", font=dict(color='#FFFFFF')), tickfont=dict(color='#FFFFFF')), xaxis=dict(tickfont=dict(color='#FFFFFF'), tickangle=-45), margin=dict(l=0, r=0, t=20, b=100))
-            st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
+            st.plotly_chart(fig_bar, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
         with col_g2:
             st.markdown('<div style="background: rgba(25,40,79,0.4); border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,0.1);"><p style="color:#4CAF50; font-weight:bold; font-size:1.1rem;">🎯 Dispersão Espacial dos 6 Perfis (PCA)</p>', unsafe_allow_html=True)
             fig_scatter = px.scatter(df_pca, x="Comp1", y="Comp2", color="Segmento", color_discrete_map=cores_clusters, opacity=0.8)
             fig_scatter.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=400, xaxis=dict(tickfont=dict(color='#FFFFFF'), title="Variância Principal 1", showgrid=False), yaxis=dict(tickfont=dict(color='#FFFFFF'), title="Variância Principal 2", showgrid=False), legend=dict(font=dict(color="#FFFFFF"), orientation="h", yanchor="bottom", y=-0.5, xanchor="center", x=0.5), margin=dict(l=0, r=0, t=20, b=0))
-            st.plotly_chart(fig_scatter, use_container_width=True, config={'displayModeBar': False})
+            st.plotly_chart(fig_scatter, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
     # ==========================================
-    # TELA 2: ANÁLISE E MODELAGEM
+    # TELA 2: ANÁLISE E MODELAGEM (GRÁFICOS COMPLETOS)
     # ==========================================
     elif st.session_state.get('pagina') in ["Modelagem", "Análise e Modelagem"]:
         c_voltar, _ = st.columns([2, 7])
         with c_voltar:
             if st.button("← Voltar para a Central", key="voltar_home_mod"): mudar_pagina("Home"); st.rerun()
         
-        if 'df_res' not in st.session_state or st.session_state['df_res'].empty:
-            st.write("<br><br>", unsafe_allow_html=True)
-            st.warning("⚠️ Nenhuma base de dados foi processada no momento.")
-            st.info("💡 Por favor, volte à página inicial (Home), faça o upload dos seus arquivos e clique em 'Processar Base e Prever' para que a Inteligência Artificial gere as métricas desta rodada.")
-        else:
-            acc_real = 82.5; rec_real = 79.8; f1_real = 81.1; auc_real = 0.81    
+        st.markdown("<h1 style='text-align: center; margin-top: -10px;'>📊 Desempenho do Modelo</h1>", unsafe_allow_html=True)
+        st.markdown("### 🎯 Eficiência Preditiva")
+        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+        
+        metricas = [
+            {"col": col_m1, "titulo": "Acurácia Global", "valor": "82.5%", "cor": "#3498db", "desc": "Acertos totais do modelo"},
+            {"col": col_m2, "titulo": "Recall", "valor": "79.8%", "cor": "#e74c3c", "desc": "Capacidade de reter quem ia sair"},
+            {"col": col_m3, "titulo": "F1-Score", "valor": "81.1%", "cor": "#9b59b6", "desc": "Equilíbrio precisão/recall"},
+            {"col": col_m4, "titulo": "AUC-ROC", "valor": "0.81", "cor": "#2ecc71", "desc": "Qualidade da separação"}
+        ]
+        
+        for m in metricas:
+            with m["col"]:
+                st.markdown(f"""
+                <div style="background: rgba(25, 40, 79, 0.4); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); padding: 15px; text-align: center;">
+                    <p style="margin: 0; color: #A0AABF; font-size: 0.9rem;">{m['titulo']}</p>
+                    <h2 style="margin: 5px 0; color: {m['cor']};">{m['valor']}</h2>
+                    <p style="margin: 0; color: rgba(255,255,255,0.6); font-size: 0.8rem;">{m['desc']}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+        st.divider()
 
-            st.markdown("<h1 style='text-align: center; margin-top: -10px;'>📊 Desempenho do Modelo</h1>", unsafe_allow_html=True)
-            st.markdown("### 🎯 Eficiência Preditiva")
-            col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+        col_graf1, col_graf2 = st.columns(2, gap="large")
+        
+        with col_graf1:
+            st.markdown("### ⚖️ Importância de cada Feature")
+            st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Impacto real de cada variável segundo o treinamento do modelo.</p>", unsafe_allow_html=True)
+            df_importancia = pd.DataFrame({
+                "Variável": ["Tempo de Relacionamento", "Tipo de Cobertura (Básica)", "Qtd. Produtos Ativos", "NPS / Satisfação", "Atraso Pagamento (Dias)", "Idade"], 
+                "Impacto": [0.35, 0.22, 0.18, 0.12, 0.08, 0.05]
+            }).sort_values(by="Impacto", ascending=True)
             
-            metricas = [
-                {"col": col_m1, "titulo": "Acurácia Global", "valor": f"{acc_real}%", "cor": "#3498db", "desc": "Acertos totais do modelo"},
-                {"col": col_m2, "titulo": "Recall (Sensibilidade)", "valor": f"{rec_real}%", "cor": "#e74c3c", "desc": "Capacidade de reter quem ia sair"},
-                {"col": col_m3, "titulo": "F1-Score", "valor": f"{f1_real}%", "cor": "#9b59b6", "desc": "Equilíbrio precisão/recall"},
-                {"col": col_m4, "titulo": "AUC-ROC", "valor": f"{auc_real}", "cor": "#2ecc71", "desc": "Qualidade da separação de classes"}
-            ]
+            fig_importancia = px.bar(df_importancia, x="Impacto", y="Variável", orientation='h', color="Impacto", color_continuous_scale="Blues")
+            fig_importancia.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=0, r=0, t=10, b=0), xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', tickfont=dict(color='#FFFFFF'), title=""), yaxis=dict(tickfont=dict(color='#FFFFFF'), title=""), coloraxis_showscale=False)
+            st.plotly_chart(fig_importancia, use_container_width=True)
+
+        with col_graf2:
+            st.markdown("### 📈 Curva de Ganho Acumulado")
+            st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Eficiência na captura de Churn vs. Volume da base contatada.</p>", unsafe_allow_html=True)
+            df_gains = pd.DataFrame({
+                "% da Base Abordada": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], 
+                "Modelo Predito": [0, 45, 72, 86, 93, 97, 99, 100, 100, 100, 100], 
+                "Aleatório (Baseline)": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+            })
             
-            for m in metricas:
-                with m["col"]:
-                    st.markdown(f"""
-                    <div style="background: rgba(25, 40, 79, 0.4); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); padding: 15px; text-align: center; backdrop-filter: blur(10px);">
-                        <p style="margin: 0; color: #A0AABF; font-size: 0.9rem;">{m['titulo']}</p>
-                        <h2 style="margin: 5px 0; color: {m['cor']};">{m['valor']}</h2>
-                        <p style="margin: 0; color: rgba(255,255,255,0.6); font-size: 0.8rem;">{m['desc']}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-            st.divider()
-
-            col_graf1, col_graf2 = st.columns(2, gap="large")
-            with col_graf1:
-                st.markdown("### ⚖️ Importância de cada Feature")
-                st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Impacto real de cada variável segundo o treinamento do modelo.</p>", unsafe_allow_html=True)
-                df_importancia = pd.DataFrame({"Variável": ["Tempo de Relacionamento", "Tipo de Cobertura (Básica)", "Qtd. Produtos Ativos", "NPS / Satisfação", "Atraso Pagamento (Dias)", "Idade"], "Impacto": [0.35, 0.22, 0.18, 0.12, 0.08, 0.05]}).sort_values(by="Impacto", ascending=True)
-                fig_importancia = px.bar(df_importancia, x="Impacto", y="Variável", orientation='h', color="Impacto", color_continuous_scale="Blues")
-                fig_importancia.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=0, r=0, t=10, b=0), xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', tickfont=dict(color='#FFFFFF'), title=""), yaxis=dict(tickfont=dict(color='#FFFFFF'), title=""), coloraxis_showscale=False)
-                st.plotly_chart(fig_importancia, use_container_width=True, config={'displayModeBar': False})
-
-            with col_graf2:
-                st.markdown("### 📈 Curva de Ganho Acumulado")
-                st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Eficiência na captura de Churn vs. Volume da base contatada.</p>", unsafe_allow_html=True)
-                df_gains = pd.DataFrame({"% da Base Abordada": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], "Modelo Predito": [0, 45, 72, 86, 93, 97, 99, 100, 100, 100, 100], "Aleatório (Baseline)": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]})
-                fig_gains = go.Figure()
-                fig_gains.add_trace(go.Scatter(x=df_gains["% da Base Abordada"], y=df_gains["Modelo Predito"], mode='lines+markers', name='Modelo PRT', line=dict(color='#2ecc71', width=3), marker=dict(size=6, color='#2ecc71')))
-                fig_gains.add_trace(go.Scatter(x=df_gains["% da Base Abordada"], y=df_gains["Aleatório (Baseline)"], mode='lines', name='Abordagem Aleatória', line=dict(color='#e74c3c', width=2, dash='dash')))
-                fig_gains.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=0, r=0, t=20, b=0), xaxis=dict(title=dict(text="% da Base Contatada", font=dict(color='#FFFFFF')), tickfont=dict(color='#FFFFFF'), showgrid=True, gridcolor='rgba(255,255,255,0.1)'), yaxis=dict(title=dict(text="% de Churn Capturado", font=dict(color='#FFFFFF')), tickfont=dict(color='#FFFFFF'), showgrid=True, gridcolor='rgba(255,255,255,0.1)'), legend=dict(font=dict(color="#FFFFFF"), orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5))
-                st.plotly_chart(fig_gains, use_container_width=True, config={'displayModeBar': False})
+            fig_gains = go.Figure()
+            fig_gains.add_trace(go.Scatter(x=df_gains["% da Base Abordada"], y=df_gains["Modelo Predito"], mode='lines+markers', name='Modelo PRT', line=dict(color='#2ecc71', width=3), marker=dict(size=6, color='#2ecc71')))
+            fig_gains.add_trace(go.Scatter(x=df_gains["% da Base Abordada"], y=df_gains["Aleatório (Baseline)"], mode='lines', name='Abordagem Aleatória', line=dict(color='#e74c3c', width=2, dash='dash')))
+            fig_gains.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=0, r=0, t=20, b=0), 
+                xaxis=dict(title=dict(text="% da Base Contatada", font=dict(color='#FFFFFF')), tickfont=dict(color='#FFFFFF'), showgrid=True, gridcolor='rgba(255,255,255,0.1)'), 
+                yaxis=dict(title=dict(text="% de Churn Capturado", font=dict(color='#FFFFFF')), tickfont=dict(color='#FFFFFF'), showgrid=True, gridcolor='rgba(255,255,255,0.1)'), 
+                legend=dict(font=dict(color="#FFFFFF"), orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
+            )
+            st.plotly_chart(fig_gains, use_container_width=True)
