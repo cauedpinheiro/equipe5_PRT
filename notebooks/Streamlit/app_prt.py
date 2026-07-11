@@ -111,13 +111,25 @@ def extrair_features_principais(df):
     return f_tempo, f_idade, f_nps, f_prod, f_cob, f_gen
 
 def gerar_probabilidade_por_cluster(cluster):
-    if cluster == 3: return np.random.uniform(62.0, 85.0)   
-    elif cluster == 5: return np.random.uniform(42.0, 61.9) 
-    elif cluster == 1: return np.random.uniform(25.0, 41.9) 
-    elif cluster == 0: return np.random.uniform(12.0, 24.9) 
-    elif cluster == 4: return np.random.uniform(6.0, 11.9)  
-    elif cluster == 2: return np.random.uniform(1.5, 5.9)   
+    try:
+        c = int(float(cluster))
+    except:
+        c = -1
+    
+    if c == 3: return np.random.uniform(62.0, 85.0)   
+    elif c == 5: return np.random.uniform(42.0, 61.9) 
+    elif c == 1: return np.random.uniform(25.0, 41.9) 
+    elif c == 0: return np.random.uniform(12.0, 24.9) 
+    elif c == 4: return np.random.uniform(6.0, 11.9)  
+    elif c == 2: return np.random.uniform(1.5, 5.9)   
     return np.random.uniform(15.0, 45.0)
+
+# Escudo para converter números de forma segura na interface
+def safe_int_format(val, suffix=""):
+    try:
+        return f"{int(float(val))}{suffix}"
+    except:
+        return "N/A"
 
 # ==========================================
 # 6. TELA DE LOGIN
@@ -204,9 +216,14 @@ else:
                 if 'df_res' in st.session_state:
                     df_res_atual = st.session_state['df_res'].copy()
                     
+                    # CÓDIGO CORRIGIDO COM ESCUDO TRY/EXCEPT PARA OS CLUSTERS
                     def obter_icone_cluster(c):
                         cores = {0: '🔵 Azul', 1: '🟡 Amarelo', 2: '🟢 Verde Esc.', 3: '🔴 Vermelho', 4: '🍏 Verde Cl.', 5: '🟠 Laranja'}
-                        return cores.get(int(c), '⚪ Outro')
+                        try:
+                            c_limpo = int(float(c))
+                            return cores.get(c_limpo, '⚪ Outro')
+                        except:
+                            return '⚪ Outro'
                         
                     df_res_atual.insert(1, 'Status (Cor)', df_res_atual['Cluster'].apply(obter_icone_cluster))
 
@@ -231,8 +248,17 @@ else:
                         # Obter dados apenas do cliente selecionado
                         dados_cliente = df_res_atual[df_res_atual['ID'] == id_selecionado].iloc[0]
                         
-                        c_cluster = int(dados_cliente['Cluster'])
-                        c_prob = float(dados_cliente['Probabilidade (%)'])
+                        # CÓDIGO CORRIGIDO COM ESCUDO TRY/EXCEPT PARA O PERFIL
+                        try:
+                            c_cluster = int(float(dados_cliente['Cluster']))
+                        except:
+                            c_cluster = -1
+                            
+                        try:
+                            c_prob = float(dados_cliente['Probabilidade (%)'])
+                        except:
+                            c_prob = 0.0
+                            
                         c_gen = str(dados_cliente['Genero']).lower()
                         
                         # Definir Avatar Cartoon (Homem ou Mulher usando API gratuita DiceBear)
@@ -241,17 +267,12 @@ else:
                         else:
                             avatar_url = f"https://api.dicebear.com/7.x/avataaars/svg?seed=Mia_{id_selecionado}&backgroundColor=ffdfbf"
 
-                        # Formatação dos dados para exibição nas métricas
-                        t_nps = dados_cliente['NPS']
-                        t_tempo = dados_cliente['Tempo Relacionamento']
-                        t_cob = dados_cliente['Cobertura']
-                        t_prod = dados_cliente['Qtd Produtos']
-                        t_idade = dados_cliente['Idade']
-
-                        v_nps = f"{int(t_nps)}" if str(t_nps) != 'N/A' else "N/A"
-                        v_tempo = f"{int(t_tempo)} dias" if str(t_tempo) != 'N/A' else "N/A"
-                        v_prod = f"{int(t_prod)}" if str(t_prod) != 'N/A' else "N/A"
-                        v_idade = f"{int(t_idade)} anos" if str(t_idade) != 'N/A' else "N/A"
+                        # Formatação dos dados para exibição nas métricas (agora super seguro)
+                        v_nps = safe_int_format(dados_cliente['NPS'])
+                        v_tempo = safe_int_format(dados_cliente['Tempo Relacionamento'], " dias")
+                        v_prod = safe_int_format(dados_cliente['Qtd Produtos'])
+                        v_idade = safe_int_format(dados_cliente['Idade'], " anos")
+                        t_cob = str(dados_cliente['Cobertura'])
 
                         # Nomes e Insights Oficiais dos Clusters
                         perfis_map = {
@@ -276,7 +297,7 @@ else:
                         with c_img:
                             st.image(avatar_url, use_container_width=True)
                             st.markdown(f"<h4 style='text-align: center; color: white; margin-top: 10px;'>ID: {id_selecionado}</h4>", unsafe_allow_html=True)
-                            st.markdown(f"<p style='text-align: center; color: #A0AABF;'>Risco de Churn: <b>{c_prob}%</b></p>", unsafe_allow_html=True)
+                            st.markdown(f"<p style='text-align: center; color: #A0AABF;'>Risco de Churn: <b>{c_prob:.1f}%</b></p>", unsafe_allow_html=True)
 
                         with c_dados:
                             st.markdown("<h4 style='color: white; margin-bottom: 15px;'>Principais Features:</h4>", unsafe_allow_html=True)
