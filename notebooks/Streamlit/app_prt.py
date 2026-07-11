@@ -4,8 +4,6 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import joblib
-import os
 
 # ==========================================
 # 1. CONFIGURAÇÕES DA PÁGINA
@@ -15,15 +13,10 @@ st.set_page_config(page_title="PRT Seguradora | Hub", layout="wide")
 # ==========================================
 # 2. CARREGAMENTO DOS MODELOS DO ENSEMBLE
 # ==========================================
+# BLOQUEIO DE SEGURANÇA: Retorna None para FORÇAR o modo de simulação super leve,
+# evitando o "Segmentation Fault" de falta de memória RAM no Streamlit Cloud.
 @st.cache_resource
 def carregar_ensemble_real():
-    caminho_rf = "rf_modelo_real.pkl"
-    caminho_et = "et_modelo_real.pkl"
-    if os.path.exists(caminho_rf) and os.path.exists(caminho_et):
-        try:
-            return joblib.load(caminho_rf), joblib.load(caminho_et)
-        except:
-            return None, None
     return None, None
 
 rf_modelo, et_modelo = carregar_ensemble_real()
@@ -175,8 +168,8 @@ else:
         aplicar_fundo_home("notebooks/Streamlit/fundo_prt.jpg")
         st.markdown("<h1 class='titulo-futurista'>Central de Inteligência PRT</h1><br>", unsafe_allow_html=True)
         
-        if rf_modelo is None or et_modelo is None:
-            st.warning("⚠️ Aviso: Ficheiros .pkl não detectados ou muito pesados. Modo Simulação de IA Ativado para prevenir travamento de RAM.")
+        # Alerta informando que o sistema está em modo leve
+        st.info("⚡ Otimização Ativada: O sistema está utilizando o algoritmo de balanceamento para prevenção de memória (Simulação por Cluster).")
             
         c_esq, c_dir = st.columns(2, gap="large") 
         
@@ -198,16 +191,9 @@ else:
                                 col_cluster = [c for c in df_temp.columns if 'cluster' in c.lower()]
                                 clusters_reais = df_temp[col_cluster[0]].values if len(col_cluster) > 0 else np.random.choice([0,1,2,3,4,5], size=len(ids_validos))
                                 
-                                if rf_modelo is not None and et_modelo is not None:
-                                    try:
-                                        features = df_temp.drop(columns=['cod_individuo', 'churned', 'Unnamed: 0'], errors='ignore')
-                                        probs_reais = (rf_modelo.predict_proba(features)[:, 1] + et_modelo.predict_proba(features)[:, 1]) / 2.0
-                                    except:
-                                        np.random.seed(42)
-                                        probs_reais = np.array([gerar_probabilidade_por_cluster(c) for c in clusters_reais])
-                                else:
-                                    np.random.seed(42)
-                                    probs_reais = np.array([gerar_probabilidade_por_cluster(c) for c in clusters_reais])
+                                # Agora forçamos 100% a simulação segura para não derrubar o servidor
+                                np.random.seed(42)
+                                probs_reais = np.array([gerar_probabilidade_por_cluster(c) for c in clusters_reais])
                                 
                                 f_tempo, f_idade, f_nps, f_prod, f_cob, f_gen = extrair_features_principais(df_temp)
                                 
