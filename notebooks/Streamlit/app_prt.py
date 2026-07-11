@@ -80,6 +80,18 @@ st.markdown("""
 # ==========================================
 # 5. FUNÇÕES AUXILIARES
 # ==========================================
+def ler_arquivo(f):
+    f.seek(0)
+    if f.name.endswith('.csv'):
+        try:
+            df = pd.read_csv(f, sep=';')
+            if len(df.columns) == 1: raise ValueError()
+            return df
+        except:
+            f.seek(0)
+            return pd.read_csv(f, sep=',')
+    return pd.read_excel(f)
+
 def padronizar_id(df):
     df.columns = [str(c).strip().lower() for c in df.columns]
     col_id = 'id_cliente' if 'id_cliente' in df.columns else ('cod_individuo' if 'cod_individuo' in df.columns else df.columns[0])
@@ -173,12 +185,13 @@ else:
                 st.markdown("<p style='text-align: center; font-size: 0.95rem; color: #A0AABF;'>Faça o upload do ficheiro processado (ex: kaggle_model_ready_v2.csv)</p>", unsafe_allow_html=True)
                 st.divider()
 
-                up_unica = st.file_uploader("Upload da Base Processada", type=["csv"], key="up_unica")
+                up_unica = st.file_uploader("Upload da Base Processada", type=["csv", "xlsx"], key="up_unica")
                 if up_unica:
                     if st.button("Processar Base e Prever", use_container_width=True):
                         with st.spinner("A processar os clientes e a calcular métricas..."):
                             try:
-                                df_temp = padronizar_id(pd.read_csv(up_unica))
+                                # CORREÇÃO CRÍTICA: AGORA UTILIZA ler_arquivo(up_unica) em vez de pd.read_csv()
+                                df_temp = padronizar_id(ler_arquivo(up_unica))
                                 df_temp = df_temp.drop_duplicates(subset=['cod_individuo']).reset_index(drop=True)
                                 ids_validos = df_temp['cod_individuo']
                                 
@@ -216,7 +229,6 @@ else:
                 if 'df_res' in st.session_state:
                     df_res_atual = st.session_state['df_res'].copy()
                     
-                    # CÓDIGO CORRIGIDO COM ESCUDO TRY/EXCEPT PARA OS CLUSTERS
                     def obter_icone_cluster(c):
                         cores = {0: '🔵 Azul', 1: '🟡 Amarelo', 2: '🟢 Verde Esc.', 3: '🔴 Vermelho', 4: '🍏 Verde Cl.', 5: '🟠 Laranja'}
                         try:
@@ -236,7 +248,7 @@ else:
                     st.dataframe(df_visual, height=220, use_container_width=True, hide_index=True)
                     
                     # ========================================================
-                    # NOVO BLOCO: ANÁLISE DE PERFIL INDIVIDUAL (COM AVATAR E FEATURES)
+                    # BLOCO: ANÁLISE DE PERFIL INDIVIDUAL (COM AVATAR E FEATURES)
                     # ========================================================
                     st.divider()
                     st.markdown("<h3 style='color: #4CAF50; margin-top: 0;'>👤 Análise de Perfil Individual</h3>", unsafe_allow_html=True)
@@ -248,7 +260,6 @@ else:
                         # Obter dados apenas do cliente selecionado
                         dados_cliente = df_res_atual[df_res_atual['ID'] == id_selecionado].iloc[0]
                         
-                        # CÓDIGO CORRIGIDO COM ESCUDO TRY/EXCEPT PARA O PERFIL
                         try:
                             c_cluster = int(float(dados_cliente['Cluster']))
                         except:
@@ -261,13 +272,13 @@ else:
                             
                         c_gen = str(dados_cliente['Genero']).lower()
                         
-                        # Definir Avatar Cartoon (Homem ou Mulher usando API gratuita DiceBear)
-                        if c_gen in ['masculino', 'm', 'male', 'homem']:
+                        # Definir Avatar Cartoon
+                        if c_gen in ['masculino', 'm', 'male', 'homem', '1', '1.0']:
                             avatar_url = f"https://api.dicebear.com/7.x/avataaars/svg?seed=Felix_{id_selecionado}&backgroundColor=b6e3f4"
                         else:
                             avatar_url = f"https://api.dicebear.com/7.x/avataaars/svg?seed=Mia_{id_selecionado}&backgroundColor=ffdfbf"
 
-                        # Formatação dos dados para exibição nas métricas (agora super seguro)
+                        # Formatação dos dados para exibição nas métricas
                         v_nps = safe_int_format(dados_cliente['NPS'])
                         v_tempo = safe_int_format(dados_cliente['Tempo Relacionamento'], " dias")
                         v_prod = safe_int_format(dados_cliente['Qtd Produtos'])
