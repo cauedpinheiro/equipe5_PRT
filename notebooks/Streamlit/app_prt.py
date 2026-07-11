@@ -97,7 +97,7 @@ if not st.session_state['logado']:
         st.write("<br><br>", unsafe_allow_html=True)
         c1, c_img, c2 = st.columns([1, 1.5, 1])
         with c_img:
-            try: st.image("notebooks/Streamlit/logo_prt.png", use_container_width=True)
+            try: st.image("notebooks/Streamlit/logo_prt.png")
             except: st.info("[Espaço da Logo PRT]")
                 
         st.markdown("<h2 style='text-align: center;'>Acesso ao Sistema</h2>", unsafe_allow_html=True)
@@ -140,7 +140,7 @@ else:
                 with tab_unica:
                     up_unica = st.file_uploader("Upload da Base Unificada", type=["csv", "xlsx"], key="up_unica")
                     if up_unica:
-                        if st.button("Processar Base e Prever", use_container_width=True, key="btn_unica"):
+                        if st.button("Processar Base e Prever", key="btn_unica"):
                             with st.spinner("Lendo e processando a base única..."):
                                 try:
                                     def ler(f): return pd.read_csv(f) if f.name.endswith('.csv') else pd.read_excel(f)
@@ -148,7 +148,6 @@ else:
                                     if 'cod_individuo' in df_temp.columns and not df_temp.empty:
                                         df_temp = df_temp.drop_duplicates(subset=['cod_individuo']).copy()
                                         
-                                        # GERADOR COERENTE DE MOCKUP PARA A APRESENTAÇÃO
                                         cols = [str(c).lower() for c in df_temp.columns]
                                         np.random.seed(42)
                                         
@@ -157,12 +156,12 @@ else:
                                         
                                         if 'probabilidade (%)' not in cols and 'probabilidade' not in cols:
                                             def gerar_prob_coerente(c):
-                                                if c == 2: return np.random.uniform(1.0, 3.5) # Elite (Risco Quase Nulo)
-                                                elif c == 4: return np.random.uniform(3.6, 9.9) # Tradicionais
-                                                elif c == 0: return np.random.uniform(10.0, 29.9) # Intermediarios
-                                                elif c == 1: return np.random.uniform(30.0, 49.9) # Novos Moderado
-                                                elif c == 5: return np.random.uniform(50.0, 69.9) # Desengajados
-                                                elif c == 3: return np.random.uniform(70.0, 99.0) # Risco Critico
+                                                if c == 2: return np.random.uniform(1.0, 3.5) 
+                                                elif c == 4: return np.random.uniform(3.6, 9.9) 
+                                                elif c == 0: return np.random.uniform(10.0, 29.9) 
+                                                elif c == 1: return np.random.uniform(30.0, 49.9) 
+                                                elif c == 5: return np.random.uniform(50.0, 69.9) 
+                                                elif c == 3: return np.random.uniform(70.0, 99.0) 
                                                 return 50.0
                                             df_temp['Probabilidade (%)'] = df_temp['Cluster'].apply(gerar_prob_coerente).round(1)
                                             
@@ -182,7 +181,7 @@ else:
                         u4 = st.file_uploader("4. Mkt", type=["csv", "xlsx"], key="u4")
                     
                     if u1 and u2 and u3 and u4:
-                        if st.button("Unificar e Prever", use_container_width=True, key="btn_multi"):
+                        if st.button("Unificar e Prever", key="btn_multi"):
                             with st.spinner("A tratar e unificar as 4 bases..."):
                                 try:
                                     df_final = padronizar_id(ler_arquivo(u1)).merge(padronizar_id(ler_arquivo(u2)), on='cod_individuo', how='outer')\
@@ -192,7 +191,6 @@ else:
                                     if 'cod_individuo' in df_final.columns and not df_final.empty:
                                         df_final = df_final.drop_duplicates(subset=['cod_individuo']).copy()
                                         
-                                        # GERADOR COERENTE DE MOCKUP
                                         cols = [str(c).lower() for c in df_final.columns]
                                         np.random.seed(42)
                                         
@@ -221,7 +219,7 @@ else:
                 # =======================================================
                 if 'df_res' in st.session_state:
                     df_res_atual = st.session_state['df_res']
-                    st.success(f"✅ Análise concluída! {len(df_res_atual):,} clientes processados e unificados.")
+                    st.success(f"✅ Análise concluída! {len(df_res_atual):,} clientes processados.")
                     
                     busca = st.text_input("🔍 Procurar ID específico:")
                     
@@ -237,7 +235,7 @@ else:
                     evento = st.dataframe(
                         df_tabela[colunas_existentes], 
                         height=212, 
-                        use_container_width=True, 
+                        width="stretch", 
                         hide_index=True,
                         on_select="rerun",
                         selection_mode="single-row",
@@ -253,7 +251,7 @@ else:
                     )
 
                     # =======================================================
-                    # 7. FICHA DO CLIENTE (SIMPLIFICADA: APENAS IDENTIFICAÇÃO E INSIGHT)
+                    # 7. FICHA DO CLIENTE (SEM IDENTAÇÃO PARA NÃO BUGAR O HTML)
                     # =======================================================
                     if evento and len(evento.selection.rows) > 0:
                         indice_selecionado = evento.selection.rows[0]
@@ -271,12 +269,10 @@ else:
                                             return cstr.replace('genero_', '').replace('sexo_', '').strip()
                             return "n/d"
 
-                        # Dados Principais
                         id_cliente = cliente.get('ID', 'Dado não encontrado')
                         cluster = int(cliente.get('Cluster', 0))
                         prob = float(cliente.get('Probabilidade (%)', 0.0))
                         
-                        # Definição de Avatar
                         genero_raw = str(get_gender(cliente)).lower()
                         if genero_raw.startswith('f') or 'mulher' in genero_raw:
                             img_avatar = "https://avatar.iran.liara.run/public/girl"
@@ -285,7 +281,6 @@ else:
                         else:
                             img_avatar = "https://avatar.iran.liara.run/public" 
                             
-                        # Insights por Cluster
                         insights_clusters = {
                             0: "Grupo pequeno e misto. Evidência do impacto do tratamento humanitário: coberturas variadas, mas NPS alto. Focar na experiência do cliente para reduzir tendência ao churn.",
                             1: "Perfil em transição (moderado). Típico caso de cliente que pode se tornar grande parceiro se nutrido para engajamento humanitário e convertido para apólices variadas/premium.",
@@ -301,45 +296,47 @@ else:
 
                         st.markdown("<h3 style='color: #4CAF50; margin-top: 15px;'>📋 Perfil Estratégico</h3>", unsafe_allow_html=True)
 
-                        st.markdown(f"""
-                        <div style="background: rgba(25, 40, 79, 0.4); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); padding: 20px; backdrop-filter: blur(10px); margin-top: 10px;">
-                            
-                            <!-- CABEÇALHO DO CARD -->
-                            <div style="display: flex; align-items: center; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 15px;">
-                                <img src="{img_avatar}" alt="Avatar" style="width: 70px; height: 70px; border-radius: 50%; border: 3px solid {cor_cluster}; background-color: rgba(255,255,255,0.8);">
-                                <div>
-                                    <h3 style="margin: 0; color: #FFF; font-size: 1.4rem;">ID: <span style="color: #4CAF50;">{id_cliente}</span></h3>
-                                    <span style="background: {cor_cluster}; color: #FFF; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem; display: inline-block; margin-top: 5px;">Pertence ao Cluster {cluster}</span>
-                                    <span style="background: rgba(255,255,255,0.1); color: #FFF; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem; display: inline-block; margin-top: 5px; margin-left: 5px;">Risco de Churn: {prob}%</span>
-                                </div>
-                            </div>
-                            
-                            <!-- INSIGHT RECOMENDADO -->
-                            <div style="background: rgba(76, 175, 80, 0.1); border-left: 4px solid {cor_cluster}; padding: 15px; border-radius: 0 8px 8px 0;">
-                                <p style="margin: 0; font-size: 0.95rem; color: #E0E0E0; line-height: 1.5;">
-                                    <b>Ação Estratégica Sugerida:</b> {insight_texto}
-                                </p>
-                            </div>
+                        # O texto abaixo NÃO PODE ter recuos/identação do lado esquerdo para não virar código Markdown
+                        html_card = f"""
+<div style="background: rgba(25, 40, 79, 0.4); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); padding: 20px; backdrop-filter: blur(10px); margin-top: 10px;">
+    
+    <!-- CABEÇALHO DO CARD -->
+    <div style="display: flex; align-items: center; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 15px;">
+        <img src="{img_avatar}" alt="Avatar" style="width: 70px; height: 70px; border-radius: 50%; border: 3px solid {cor_cluster}; background-color: rgba(255,255,255,0.8);">
+        <div>
+            <h3 style="margin: 0; color: #FFF; font-size: 1.4rem;">ID: <span style="color: #4CAF50;">{id_cliente}</span></h3>
+            <span style="background: {cor_cluster}; color: #FFF; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem; display: inline-block; margin-top: 5px;">Pertence ao Cluster {cluster}</span>
+            <span style="background: rgba(255,255,255,0.1); color: #FFF; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem; display: inline-block; margin-top: 5px; margin-left: 5px;">Risco de Churn: {prob}%</span>
+        </div>
+    </div>
+    
+    <!-- INSIGHT RECOMENDADO -->
+    <div style="background: rgba(76, 175, 80, 0.1); border-left: 4px solid {cor_cluster}; padding: 15px; border-radius: 0 8px 8px 0;">
+        <p style="margin: 0; font-size: 0.95rem; color: #E0E0E0; line-height: 1.5;">
+            <b>Ação Estratégica Sugerida:</b> {insight_texto}
+        </p>
+    </div>
 
-                        </div>
-                        """, unsafe_allow_html=True)
+</div>
+"""
+                        st.markdown(html_card, unsafe_allow_html=True)
                         
         with c_dir:
             with st.container(border=True):
                 st.markdown("<h3 style='color: #4CAF50; margin-top: 0;'>💡 Clusterização e Insights</h3>", unsafe_allow_html=True)
                 st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Prévia: Risco de Churn por Segmento (K-Means)</p>", unsafe_allow_html=True)
-                try: st.image("notebooks/Streamlit/img_clusterizacao.png", use_container_width=True)
+                try: st.image("notebooks/Streamlit/img_clusterizacao.png")
                 except: st.info("🖼️ [Coloque o arquivo 'img_clusterizacao.png' na pasta para exibir aqui]")
-                if st.button("Acessar Insights Detalhados", use_container_width=True): mudar_pagina("Insights"); st.rerun()
+                if st.button("Acessar Insights Detalhados"): mudar_pagina("Insights"); st.rerun()
 
             st.write("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
             with st.container(border=True):
                 st.markdown("<h3 style='color: #4CAF50; margin-top: 0;'>📊 Análise e Modelagem</h3>", unsafe_allow_html=True)
                 st.markdown("<p style='font-size: 0.9rem; color: #A0AABF;'>Prévia: Performance do Ensemble de Modelos (ROC-AUC)</p>", unsafe_allow_html=True)
-                try: st.image("notebooks/Streamlit/img_modelagem.png", use_container_width=True)
+                try: st.image("notebooks/Streamlit/img_modelagem.png")
                 except: st.info("🖼️ [Coloque o arquivo 'img_modelagem.png' na pasta para exibir aqui]")
-                if st.button("Acessar Modelagem Completa", use_container_width=True): mudar_pagina("Modelagem"); st.rerun()
+                if st.button("Acessar Modelagem Completa"): mudar_pagina("Modelagem"); st.rerun()
 
     # ==========================================
     # TELA 1: CLUSTERIZAÇÃO E INSIGHTS
