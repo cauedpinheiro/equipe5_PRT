@@ -42,38 +42,22 @@ st.markdown("""
     /* Título Futurista */
     .titulo-futurista { font-family: 'Orbitron', sans-serif; font-size: 3.5rem; color: #4CAF50; text-align: center; text-shadow: 0px 0px 15px rgba(76, 175, 80, 0.6); margin-top: -90px; margin-bottom: 30px; letter-spacing: 2px; text-transform: uppercase; }
     
-    /* Novos Botões (Limpos, integrados dentro do container) */
+    /* Novos Botões */
     .stButton > button { 
-        width: 100%; 
-        background: rgba(25, 40, 79, 0.6) !important; 
-        border: 1px solid rgba(76, 175, 80, 0.5) !important; 
-        color: #4CAF50 !important; 
-        font-weight: 800 !important; 
-        font-size: 1.1rem !important; 
-        padding: 12px !important; 
-        border-radius: 8px !important; 
-        transition: all 0.3s ease !important; 
-        box-shadow: none !important;
+        width: 100%; background: rgba(25, 40, 79, 0.6) !important; border: 1px solid rgba(76, 175, 80, 0.5) !important; 
+        color: #4CAF50 !important; font-weight: 800 !important; font-size: 1.1rem !important; padding: 12px !important; 
+        border-radius: 8px !important; transition: all 0.3s ease !important; box-shadow: none !important;
     }
-    .stButton > button:hover { 
-        background: #4CAF50 !important; 
-        color: #19284F !important; 
-        box-shadow: 0 0 15px rgba(76, 175, 80, 0.6) !important; 
-    }
+    .stButton > button:hover { background: #4CAF50 !important; color: #19284F !important; box-shadow: 0 0 15px rgba(76, 175, 80, 0.6) !important; }
 
-    /* O SEGREDO DO NEON: Efeito Hover aplicado no container inteiro */
+    /* Neon Containers */
     [data-testid="stVerticalBlockBorderWrapper"] { 
-        background: rgba(25, 40, 79, 0.4) !important; 
-        backdrop-filter: blur(16px) !important; 
-        border: 1px solid rgba(255, 255, 255, 0.1) !important; 
-        border-radius: 16px !important; 
-        padding: 20px !important; 
-        transition: all 0.3s ease-in-out !important; 
+        background: rgba(25, 40, 79, 0.4) !important; backdrop-filter: blur(16px) !important; 
+        border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 16px !important; 
+        padding: 20px !important; transition: all 0.3s ease-in-out !important; 
     }
     [data-testid="stVerticalBlockBorderWrapper"]:hover {
-        border: 1px solid #4CAF50 !important;
-        box-shadow: 0 0 25px 5px rgba(76, 175, 80, 0.5) !important; 
-        transform: translateY(-3px); 
+        border: 1px solid #4CAF50 !important; box-shadow: 0 0 25px 5px rgba(76, 175, 80, 0.5) !important; transform: translateY(-3px); 
     }
     </style>
 """, unsafe_allow_html=True)
@@ -84,18 +68,12 @@ st.markdown("""
 def padronizar_id(df):
     df.columns = [str(c).strip().lower() for c in df.columns]
     
-    if 'id_cliente' in df.columns: 
-        col_id = 'id_cliente'
-    elif 'cod_individuo' in df.columns: 
-        col_id = 'cod_individuo'
-    else: 
-        col_id = df.columns[0]
+    if 'id_cliente' in df.columns: col_id = 'id_cliente'
+    elif 'cod_individuo' in df.columns: col_id = 'cod_individuo'
+    else: col_id = df.columns[0]
         
     df['cod_individuo'] = df[col_id].astype(str).str.replace(r'\.0$', '', regex=True).str.replace('ind-', '', case=False, regex=False).str.strip()
-    
-    if col_id != 'cod_individuo': 
-        df = df.drop(columns=[col_id], errors='ignore')
-        
+    if col_id != 'cod_individuo': df = df.drop(columns=[col_id], errors='ignore')
     return df
 
 def ler_arquivo(f):
@@ -108,8 +86,7 @@ def ler_arquivo(f):
         except:
             f.seek(0)
             return pd.read_csv(f, sep=',')
-    else:
-        return pd.read_excel(f)
+    else: return pd.read_excel(f)
 
 # ==========================================
 # 5. TELA DE LOGIN E HUB
@@ -141,9 +118,7 @@ else:
     with col_sair:
         st.write("<br>", unsafe_allow_html=True)
         if st.button("Sair da Conta"): 
-            st.session_state['logado'] = False
-            st.session_state['pagina'] = "Home"
-            st.rerun()
+            st.session_state['logado'] = False; st.session_state['pagina'] = "Home"; st.rerun()
 
     # ==========================================
     # TELA 0: HOME
@@ -172,9 +147,25 @@ else:
                                     df_temp = padronizar_id(ler(up_unica))
                                     if 'cod_individuo' in df_temp.columns and not df_temp.empty:
                                         df_temp = df_temp.drop_duplicates(subset=['cod_individuo']).copy()
+                                        
+                                        # GERADOR COERENTE DE MOCKUP PARA A APRESENTAÇÃO
+                                        cols = [str(c).lower() for c in df_temp.columns]
                                         np.random.seed(42)
-                                        df_temp['Cluster'] = np.random.choice([0, 1, 2, 3, 4, 5], size=len(df_temp))
-                                        df_temp['Probabilidade (%)'] = np.random.uniform(1, 99, len(df_temp)).round(1)
+                                        
+                                        if 'cluster' not in cols:
+                                            df_temp['Cluster'] = np.random.choice([0, 1, 2, 3, 4, 5], size=len(df_temp))
+                                        
+                                        if 'probabilidade (%)' not in cols and 'probabilidade' not in cols:
+                                            def gerar_prob_coerente(c):
+                                                if c == 2: return np.random.uniform(1.0, 3.5) # Elite (Risco Quase Nulo)
+                                                elif c == 4: return np.random.uniform(3.6, 9.9) # Tradicionais
+                                                elif c == 0: return np.random.uniform(10.0, 29.9) # Intermediarios
+                                                elif c == 1: return np.random.uniform(30.0, 49.9) # Novos Moderado
+                                                elif c == 5: return np.random.uniform(50.0, 69.9) # Desengajados
+                                                elif c == 3: return np.random.uniform(70.0, 99.0) # Risco Critico
+                                                return 50.0
+                                            df_temp['Probabilidade (%)'] = df_temp['Cluster'].apply(gerar_prob_coerente).round(1)
+                                            
                                         df_temp.rename(columns={'cod_individuo': 'ID'}, inplace=True)
                                         st.session_state['df_res'] = df_temp
                                     else:
@@ -200,9 +191,25 @@ else:
                                                                 
                                     if 'cod_individuo' in df_final.columns and not df_final.empty:
                                         df_final = df_final.drop_duplicates(subset=['cod_individuo']).copy()
+                                        
+                                        # GERADOR COERENTE DE MOCKUP
+                                        cols = [str(c).lower() for c in df_final.columns]
                                         np.random.seed(42)
-                                        df_final['Cluster'] = np.random.choice([0, 1, 2, 3, 4, 5], size=len(df_final))
-                                        df_final['Probabilidade (%)'] = np.random.uniform(1, 99, len(df_final)).round(1)
+                                        
+                                        if 'cluster' not in cols:
+                                            df_final['Cluster'] = np.random.choice([0, 1, 2, 3, 4, 5], size=len(df_final))
+                                            
+                                        if 'probabilidade (%)' not in cols and 'probabilidade' not in cols:
+                                            def gerar_prob_coerente(c):
+                                                if c == 2: return np.random.uniform(1.0, 3.5)
+                                                elif c == 4: return np.random.uniform(3.6, 9.9)
+                                                elif c == 0: return np.random.uniform(10.0, 29.9)
+                                                elif c == 1: return np.random.uniform(30.0, 49.9)
+                                                elif c == 5: return np.random.uniform(50.0, 69.9)
+                                                elif c == 3: return np.random.uniform(70.0, 99.0)
+                                                return 50.0
+                                            df_final['Probabilidade (%)'] = df_final['Cluster'].apply(gerar_prob_coerente).round(1)
+                                            
                                         df_final.rename(columns={'cod_individuo': 'ID'}, inplace=True)
                                         st.session_state['df_res'] = df_final
                                     else:
@@ -225,7 +232,7 @@ else:
                     colunas_exibir = ['ID', 'Probabilidade (%)', 'Cluster']
                     colunas_existentes = [c for c in colunas_exibir if c in df_tabela.columns]
 
-                    st.markdown("<p style='font-size: 0.85rem; color: #A0AABF;'>🖱️ Clique em um cliente na tabela abaixo para abrir sua ficha técnica.</p>", unsafe_allow_html=True)
+                    st.markdown("<p style='font-size: 0.85rem; color: #A0AABF;'>🖱️ Clique em um cliente na tabela abaixo para abrir sua ficha e recomendação.</p>", unsafe_allow_html=True)
 
                     evento = st.dataframe(
                         df_tabela[colunas_existentes], 
@@ -246,52 +253,37 @@ else:
                     )
 
                     # =======================================================
-                    # 7. FICHA DO CLIENTE (INTERATIVA COM O CLIQUE)
+                    # 7. FICHA DO CLIENTE (SIMPLIFICADA: APENAS IDENTIFICAÇÃO E INSIGHT)
                     # =======================================================
                     if evento and len(evento.selection.rows) > 0:
                         indice_selecionado = evento.selection.rows[0]
                         cliente = df_tabela.iloc[indice_selecionado]
 
-                        # Função atualizada para não confundir nomes de colunas
-                        def buscar_valor(linha, possiveis_nomes):
-                            # 1. Busca exata (prioridade)
-                            for nome in possiveis_nomes:
-                                for col in linha.index:
-                                    if nome == str(col).lower() and pd.notna(linha[col]) and str(linha[col]).strip() != "":
-                                        val = linha[col]
-                                        if isinstance(val, float) and val.is_integer(): return str(int(val))
-                                        return str(val)
-                            
-                            # 2. Busca parcial (bloqueando a palavra "valor" para não pegar valores financeiros por engano)
-                            for nome in possiveis_nomes:
-                                for col in linha.index:
-                                    col_str = str(col).lower()
-                                    if nome in col_str and "valor" not in col_str and pd.notna(linha[col]) and str(linha[col]).strip() != "":
-                                        val = linha[col]
-                                        if isinstance(val, float) and val.is_integer(): return str(int(val))
-                                        return str(val)
-                            
-                            return "Dado não encontrado"
+                        def get_gender(linha):
+                            chaves = ['sexo', 'genero', 'gender']
+                            for k in chaves:
+                                for c in linha.index:
+                                    cstr = str(c).lower()
+                                    if k in cstr and "valor" not in cstr:
+                                        v = linha[c]
+                                        if isinstance(v, str) and not v.isnumeric(): return v
+                                        if v == 1 or v == 1.0 or str(v).lower() == 'true':
+                                            return cstr.replace('genero_', '').replace('sexo_', '').strip()
+                            return "n/d"
 
-                        # Extração Inteligente com prioridade aos nomes corretos da PRT
+                        # Dados Principais
                         id_cliente = cliente.get('ID', 'Dado não encontrado')
                         cluster = int(cliente.get('Cluster', 0))
                         prob = float(cliente.get('Probabilidade (%)', 0.0))
                         
-                        idade = buscar_valor(cliente, ['idade', 'age'])
-                        nps = buscar_valor(cliente, ['satisfacao_nps', 'nps', 'satisfacao', 'score'])
-                        tempo = buscar_valor(cliente, ['tempo_cliente_dias', 'tempo_cliente', 'tempo', 'meses', 'dias', 'relacionamento'])
-                        cobertura = buscar_valor(cliente, ['tipo_cobertura', 'cobertura', 'plano'])
-                        produtos = buscar_valor(cliente, ['num_produtos_contratados', 'num_produtos', 'qtd_produtos', 'produtos', 'apolices'])
-                        
-                        # Definição de Avatar Dinâmico baseado no Gênero
-                        genero = buscar_valor(cliente, ['sexo', 'genero', 'gender']).lower()
-                        if genero.startswith('f') or 'mulher' in genero:
+                        # Definição de Avatar
+                        genero_raw = str(get_gender(cliente)).lower()
+                        if genero_raw.startswith('f') or 'mulher' in genero_raw:
                             img_avatar = "https://avatar.iran.liara.run/public/girl"
-                        elif genero.startswith('m') or 'homem' in genero:
+                        elif genero_raw.startswith('m') or 'homem' in genero_raw:
                             img_avatar = "https://avatar.iran.liara.run/public/boy"
                         else:
-                            img_avatar = "https://avatar.iran.liara.run/public" # Neutro/Aleatório
+                            img_avatar = "https://avatar.iran.liara.run/public" 
                             
                         # Insights por Cluster
                         insights_clusters = {
@@ -303,12 +295,11 @@ else:
                             5: "Desengajados Críticos. Menor satisfação (NPS baixo) e pagamentos atrasados. Foco total na relação com o cliente: contato humano atencioso e entender a causa dos atrasos."
                         }
                         
-                        # Definição de Cores
                         cores = {0: "#3498db", 1: "#f1c40f", 2: "#27ae60", 3: "#c0392b", 4: "#2ecc71", 5: "#e67e22"}
                         cor_cluster = cores.get(cluster, "#ffffff")
                         insight_texto = insights_clusters.get(cluster, "Insight não mapeado.")
 
-                        st.markdown("<h3 style='color: #4CAF50; margin-top: 15px;'>📋 Perfil</h3>", unsafe_allow_html=True)
+                        st.markdown("<h3 style='color: #4CAF50; margin-top: 15px;'>📋 Perfil Estratégico</h3>", unsafe_allow_html=True)
 
                         st.markdown(f"""
                         <div style="background: rgba(25, 40, 79, 0.4); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); padding: 20px; backdrop-filter: blur(10px); margin-top: 10px;">
@@ -320,30 +311,6 @@ else:
                                     <h3 style="margin: 0; color: #FFF; font-size: 1.4rem;">ID: <span style="color: #4CAF50;">{id_cliente}</span></h3>
                                     <span style="background: {cor_cluster}; color: #FFF; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem; display: inline-block; margin-top: 5px;">Pertence ao Cluster {cluster}</span>
                                     <span style="background: rgba(255,255,255,0.1); color: #FFF; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem; display: inline-block; margin-top: 5px; margin-left: 5px;">Risco de Churn: {prob}%</span>
-                                </div>
-                            </div>
-                            
-                            <!-- MÉTRICAS (FEATURES) -->
-                            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 15px;">
-                                <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; text-align: center;">
-                                    <p style="margin: 0; font-size: 0.7rem; color: #A0AABF; text-transform: uppercase;">NPS Atual</p>
-                                    <p style="margin: 0; font-weight: bold; color: #FFF; font-size: 1.2rem;">{nps}</p>
-                                </div>
-                                <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; text-align: center;">
-                                    <p style="margin: 0; font-size: 0.7rem; color: #A0AABF; text-transform: uppercase;">Tempo (Dias)</p>
-                                    <p style="margin: 0; font-weight: bold; color: #FFF; font-size: 1.2rem;">{tempo}</p>
-                                </div>
-                                <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; text-align: center;">
-                                    <p style="margin: 0; font-size: 0.7rem; color: #A0AABF; text-transform: uppercase;">Cobertura</p>
-                                    <p style="margin: 0; font-weight: bold; color: #FFF; font-size: 1.2rem;">{cobertura}</p>
-                                </div>
-                                <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; text-align: center;">
-                                    <p style="margin: 0; font-size: 0.7rem; color: #A0AABF; text-transform: uppercase;">Apolices/Prod.</p>
-                                    <p style="margin: 0; font-weight: bold; color: #FFF; font-size: 1.2rem;">{produtos}</p>
-                                </div>
-                                <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; text-align: center;">
-                                    <p style="margin: 0; font-size: 0.7rem; color: #A0AABF; text-transform: uppercase;">Idade</p>
-                                    <p style="margin: 0; font-weight: bold; color: #FFF; font-size: 1.2rem;">{idade}</p>
                                 </div>
                             </div>
                             
@@ -495,8 +462,7 @@ else:
             c_voltar, _ = st.columns([2, 7])
             with c_voltar:
                 if st.button("← Voltar para a Central", key="voltar_home_mod"): 
-                    st.session_state['pagina'] = "Home"
-                    st.rerun()
+                    st.session_state['pagina'] = "Home"; st.rerun()
             
             if 'df_res' not in st.session_state or st.session_state['df_res'].empty:
                 st.write("<br><br>", unsafe_allow_html=True)
