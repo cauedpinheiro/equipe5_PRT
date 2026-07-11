@@ -215,7 +215,7 @@ else:
                                 except Exception as e: st.error(f"Erro ao unificar as bases: {e}")
                 
                 # =======================================================
-                # 6. TABELA COM O FIX DO STREAMLIT PARA SELEÇÃO INTERATIVA
+                # 6. TABELA COM SELEÇÃO INTERATIVA
                 # =======================================================
                 if 'df_res' in st.session_state:
                     df_res_atual = st.session_state['df_res']
@@ -251,43 +251,27 @@ else:
                     )
 
                     # =======================================================
-                    # 7. FICHA DO CLIENTE (SEM IDENTAÇÃO PARA NÃO BUGAR O HTML)
+                    # 7. FICHA DO CLIENTE (ESTÁTICA, SUPER LEVE E SEM IDENTAÇÃO)
                     # =======================================================
                     if evento and len(evento.selection.rows) > 0:
                         indice_selecionado = evento.selection.rows[0]
                         cliente = df_tabela.iloc[indice_selecionado]
 
-                        def get_gender(linha):
-                            chaves = ['sexo', 'genero', 'gender']
-                            for k in chaves:
-                                for c in linha.index:
-                                    cstr = str(c).lower()
-                                    if k in cstr and "valor" not in cstr:
-                                        v = linha[c]
-                                        if isinstance(v, str) and not v.isnumeric(): return v
-                                        if v == 1 or v == 1.0 or str(v).lower() == 'true':
-                                            return cstr.replace('genero_', '').replace('sexo_', '').strip()
-                            return "n/d"
-
-                        id_cliente = cliente.get('ID', 'Dado não encontrado')
+                        id_cliente = cliente.get('ID', 'N/D')
                         cluster = int(cliente.get('Cluster', 0))
                         prob = float(cliente.get('Probabilidade (%)', 0.0))
                         
-                        genero_raw = str(get_gender(cliente)).lower()
-                        if genero_raw.startswith('f') or 'mulher' in genero_raw:
-                            img_avatar = "https://avatar.iran.liara.run/public/girl"
-                        elif genero_raw.startswith('m') or 'homem' in genero_raw:
-                            img_avatar = "https://avatar.iran.liara.run/public/boy"
-                        else:
-                            img_avatar = "https://avatar.iran.liara.run/public" 
+                        # Avatar estático para máxima leveza
+                        img_avatar = "https://avatar.iran.liara.run/public"
                             
+                        # Insights estáticos extraídos exatamente da página de Insights
                         insights_clusters = {
-                            0: "Grupo pequeno e misto. Evidência do impacto do tratamento humanitário: coberturas variadas, mas NPS alto. Focar na experiência do cliente para reduzir tendência ao churn.",
-                            1: "Perfil em transição (moderado). Típico caso de cliente que pode se tornar grande parceiro se nutrido para engajamento humanitário e convertido para apólices variadas/premium.",
-                            2: "Elite da base (Premium Fidelizados). Risco quase nulo. É o perfil mais fiel, focar em manutenção de relacionamento e benefícios exclusivos.",
-                            3: "Risco Crítico Imediato. Maior prioridade de retenção. Grande número de apólices do mesmo tipo e pouco tempo de casa. Investir em variedade das apólices e fidelização.",
-                            4: "Tradicionais Consolidados. Clientes fiéis com NPS muito elevado. Focar em cross-sell e fidelização, pois o tempo de fidelidade compensa possíveis coberturas inferiores.",
-                            5: "Desengajados Críticos. Menor satisfação (NPS baixo) e pagamentos atrasados. Foco total na relação com o cliente: contato humano atencioso e entender a causa dos atrasos."
+                            0: "Evidência do impacto do tratamento humanitário: coberturas variadas, mas NPS alto se comparado ao 3, 5 e 1. Confirma com números a hipotése de que a experiência do cliente reduz a sua tendência à churn.",
+                            1: "Principal alvo de ataque: cliente em transição → tempo médio de casa e com diversificação de contrato mediana. Típico caso de cliente que pode se tornar um grande parceiro da PRT se for nutrido para um engajamento humanitário na empresa e convertido para apólices variadas e com cobertura premium.",
+                            2: "Evidência do impacto do tipo de cobertura da apólice e do tempo de casa na taxa de churn. É o perfil de cliente mais fiel da PRT, sendo marcado por cobertura premium e carteira diversificada.",
+                            3: "Grande número de apólices do mesmo tipo (ex.: vários carros com a cobertura básica); Pouco tempo de casa. Investir em variedade das apólices, promoção do tipo de cobertura e fidelização na empresa.",
+                            4: "Quase tão antigo quando o cluster 2, mas o NPS é muito elevado e o tipo de cobertura é quase 100% do tipo padrão. Isso indica que a experiência humanizada (maior NPS) e o tempo de fidelidade podem compensar um tipo de cobertura possivelmente inferior em alguns casos.",
+                            5: "Relativamente fidelizado, renda alta e com apólices diversificadas, mas NPS baixo e pagamentos atrasados. Foco total na relação com o cliente: contato humano atencioso e entender o atraso dos pagamentos."
                         }
                         
                         cores = {0: "#3498db", 1: "#f1c40f", 2: "#27ae60", 3: "#c0392b", 4: "#2ecc71", 5: "#e67e22"}
@@ -296,26 +280,26 @@ else:
 
                         st.markdown("<h3 style='color: #4CAF50; margin-top: 15px;'>📋 Perfil Estratégico</h3>", unsafe_allow_html=True)
 
-                        # O texto abaixo NÃO PODE ter recuos/identação do lado esquerdo para não virar código Markdown
+                        # HTML 100% colado na esquerda
                         html_card = f"""
 <div style="background: rgba(25, 40, 79, 0.4); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); padding: 20px; backdrop-filter: blur(10px); margin-top: 10px;">
-    
-    <!-- CABEÇALHO DO CARD -->
-    <div style="display: flex; align-items: center; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 15px;">
-        <img src="{img_avatar}" alt="Avatar" style="width: 70px; height: 70px; border-radius: 50%; border: 3px solid {cor_cluster}; background-color: rgba(255,255,255,0.8);">
-        <div>
-            <h3 style="margin: 0; color: #FFF; font-size: 1.4rem;">ID: <span style="color: #4CAF50;">{id_cliente}</span></h3>
-            <span style="background: {cor_cluster}; color: #FFF; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem; display: inline-block; margin-top: 5px;">Pertence ao Cluster {cluster}</span>
-            <span style="background: rgba(255,255,255,0.1); color: #FFF; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem; display: inline-block; margin-top: 5px; margin-left: 5px;">Risco de Churn: {prob}%</span>
-        </div>
-    </div>
-    
-    <!-- INSIGHT RECOMENDADO -->
-    <div style="background: rgba(76, 175, 80, 0.1); border-left: 4px solid {cor_cluster}; padding: 15px; border-radius: 0 8px 8px 0;">
-        <p style="margin: 0; font-size: 0.95rem; color: #E0E0E0; line-height: 1.5;">
-            <b>Ação Estratégica Sugerida:</b> {insight_texto}
-        </p>
-    </div>
+
+<!-- CABEÇALHO DO CARD -->
+<div style="display: flex; align-items: center; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 15px;">
+<img src="{img_avatar}" alt="Avatar" style="width: 70px; height: 70px; border-radius: 50%; border: 3px solid {cor_cluster}; background-color: rgba(255,255,255,0.8);">
+<div>
+<h3 style="margin: 0; color: #FFF; font-size: 1.4rem;">ID: <span style="color: #4CAF50;">{id_cliente}</span></h3>
+<span style="background: {cor_cluster}; color: #FFF; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem; display: inline-block; margin-top: 5px;">Pertence ao Cluster {cluster}</span>
+<span style="background: rgba(255,255,255,0.1); color: #FFF; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem; display: inline-block; margin-top: 5px; margin-left: 5px;">Risco de Churn: {prob}%</span>
+</div>
+</div>
+
+<!-- INSIGHT RECOMENDADO -->
+<div style="background: rgba(76, 175, 80, 0.1); border-left: 4px solid {cor_cluster}; padding: 15px; border-radius: 0 8px 8px 0;">
+<p style="margin: 0; font-size: 0.95rem; color: #E0E0E0; line-height: 1.5;">
+<b>Ação Estratégica Sugerida:</b> {insight_texto}
+</p>
+</div>
 
 </div>
 """
