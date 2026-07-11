@@ -42,38 +42,22 @@ st.markdown("""
     /* Título Futurista */
     .titulo-futurista { font-family: 'Orbitron', sans-serif; font-size: 3.5rem; color: #4CAF50; text-align: center; text-shadow: 0px 0px 15px rgba(76, 175, 80, 0.6); margin-top: -90px; margin-bottom: 30px; letter-spacing: 2px; text-transform: uppercase; }
     
-    /* Novos Botões (Limpos, integrados dentro do container) */
+    /* Novos Botões */
     .stButton > button { 
-        width: 100%; 
-        background: rgba(25, 40, 79, 0.6) !important; 
-        border: 1px solid rgba(76, 175, 80, 0.5) !important; 
-        color: #4CAF50 !important; 
-        font-weight: 800 !important; 
-        font-size: 1.1rem !important; 
-        padding: 12px !important; 
-        border-radius: 8px !important; 
-        transition: all 0.3s ease !important; 
-        box-shadow: none !important;
+        width: 100%; background: rgba(25, 40, 79, 0.6) !important; border: 1px solid rgba(76, 175, 80, 0.5) !important; 
+        color: #4CAF50 !important; font-weight: 800 !important; font-size: 1.1rem !important; padding: 12px !important; 
+        border-radius: 8px !important; transition: all 0.3s ease !important; box-shadow: none !important;
     }
-    .stButton > button:hover { 
-        background: #4CAF50 !important; 
-        color: #19284F !important; 
-        box-shadow: 0 0 15px rgba(76, 175, 80, 0.6) !important; 
-    }
+    .stButton > button:hover { background: #4CAF50 !important; color: #19284F !important; box-shadow: 0 0 15px rgba(76, 175, 80, 0.6) !important; }
 
-    /* O SEGREDO DO NEON: Efeito Hover aplicado no container inteiro */
+    /* Neon Containers */
     [data-testid="stVerticalBlockBorderWrapper"] { 
-        background: rgba(25, 40, 79, 0.4) !important; 
-        backdrop-filter: blur(16px) !important; 
-        border: 1px solid rgba(255, 255, 255, 0.1) !important; 
-        border-radius: 16px !important; 
-        padding: 20px !important; 
-        transition: all 0.3s ease-in-out !important; 
+        background: rgba(25, 40, 79, 0.4) !important; backdrop-filter: blur(16px) !important; 
+        border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 16px !important; 
+        padding: 20px !important; transition: all 0.3s ease-in-out !important; 
     }
     [data-testid="stVerticalBlockBorderWrapper"]:hover {
-        border: 1px solid #4CAF50 !important;
-        box-shadow: 0 0 25px 5px rgba(76, 175, 80, 0.5) !important; 
-        transform: translateY(-3px); 
+        border: 1px solid #4CAF50 !important; box-shadow: 0 0 25px 5px rgba(76, 175, 80, 0.5) !important; transform: translateY(-3px); 
     }
     </style>
 """, unsafe_allow_html=True)
@@ -84,18 +68,12 @@ st.markdown("""
 def padronizar_id(df):
     df.columns = [str(c).strip().lower() for c in df.columns]
     
-    if 'id_cliente' in df.columns: 
-        col_id = 'id_cliente'
-    elif 'cod_individuo' in df.columns: 
-        col_id = 'cod_individuo'
-    else: 
-        col_id = df.columns[0]
+    if 'id_cliente' in df.columns: col_id = 'id_cliente'
+    elif 'cod_individuo' in df.columns: col_id = 'cod_individuo'
+    else: col_id = df.columns[0]
         
     df['cod_individuo'] = df[col_id].astype(str).str.replace(r'\.0$', '', regex=True).str.replace('ind-', '', case=False, regex=False).str.strip()
-    
-    if col_id != 'cod_individuo': 
-        df = df.drop(columns=[col_id], errors='ignore')
-        
+    if col_id != 'cod_individuo': df = df.drop(columns=[col_id], errors='ignore')
     return df
 
 def ler_arquivo(f):
@@ -108,8 +86,7 @@ def ler_arquivo(f):
         except:
             f.seek(0)
             return pd.read_csv(f, sep=',')
-    else:
-        return pd.read_excel(f)
+    else: return pd.read_excel(f)
 
 # ==========================================
 # 5. TELA DE LOGIN E HUB
@@ -141,9 +118,7 @@ else:
     with col_sair:
         st.write("<br>", unsafe_allow_html=True)
         if st.button("Sair da Conta"): 
-            st.session_state['logado'] = False
-            st.session_state['pagina'] = "Home"
-            st.rerun()
+            st.session_state['logado'] = False; st.session_state['pagina'] = "Home"; st.rerun()
 
     # ==========================================
     # TELA 0: HOME
@@ -172,9 +147,25 @@ else:
                                     df_temp = padronizar_id(ler(up_unica))
                                     if 'cod_individuo' in df_temp.columns and not df_temp.empty:
                                         df_temp = df_temp.drop_duplicates(subset=['cod_individuo']).copy()
+                                        
+                                        # GERADOR COERENTE DE MOCKUP PARA A APRESENTAÇÃO
+                                        cols = [str(c).lower() for c in df_temp.columns]
                                         np.random.seed(42)
-                                        df_temp['Cluster'] = np.random.choice([0, 1, 2, 3, 4, 5], size=len(df_temp))
-                                        df_temp['Probabilidade (%)'] = np.random.uniform(1, 99, len(df_temp)).round(1)
+                                        
+                                        if 'cluster' not in cols:
+                                            df_temp['Cluster'] = np.random.choice([0, 1, 2, 3, 4, 5], size=len(df_temp))
+                                        
+                                        if 'probabilidade (%)' not in cols and 'probabilidade' not in cols:
+                                            def gerar_prob_coerente(c):
+                                                if c == 2: return np.random.uniform(1.0, 3.5) # Elite (Risco Quase Nulo)
+                                                elif c == 4: return np.random.uniform(3.6, 9.9) # Tradicionais
+                                                elif c == 0: return np.random.uniform(10.0, 29.9) # Intermediarios
+                                                elif c == 1: return np.random.uniform(30.0, 49.9) # Novos Moderado
+                                                elif c == 5: return np.random.uniform(50.0, 69.9) # Desengajados
+                                                elif c == 3: return np.random.uniform(70.0, 99.0) # Risco Critico
+                                                return 50.0
+                                            df_temp['Probabilidade (%)'] = df_temp['Cluster'].apply(gerar_prob_coerente).round(1)
+                                            
                                         df_temp.rename(columns={'cod_individuo': 'ID'}, inplace=True)
                                         st.session_state['df_res'] = df_temp
                                     else:
@@ -200,9 +191,25 @@ else:
                                                                 
                                     if 'cod_individuo' in df_final.columns and not df_final.empty:
                                         df_final = df_final.drop_duplicates(subset=['cod_individuo']).copy()
+                                        
+                                        # GERADOR COERENTE DE MOCKUP
+                                        cols = [str(c).lower() for c in df_final.columns]
                                         np.random.seed(42)
-                                        df_final['Cluster'] = np.random.choice([0, 1, 2, 3, 4, 5], size=len(df_final))
-                                        df_final['Probabilidade (%)'] = np.random.uniform(1, 99, len(df_final)).round(1)
+                                        
+                                        if 'cluster' not in cols:
+                                            df_final['Cluster'] = np.random.choice([0, 1, 2, 3, 4, 5], size=len(df_final))
+                                            
+                                        if 'probabilidade (%)' not in cols and 'probabilidade' not in cols:
+                                            def gerar_prob_coerente(c):
+                                                if c == 2: return np.random.uniform(1.0, 3.5)
+                                                elif c == 4: return np.random.uniform(3.6, 9.9)
+                                                elif c == 0: return np.random.uniform(10.0, 29.9)
+                                                elif c == 1: return np.random.uniform(30.0, 49.9)
+                                                elif c == 5: return np.random.uniform(50.0, 69.9)
+                                                elif c == 3: return np.random.uniform(70.0, 99.0)
+                                                return 50.0
+                                            df_final['Probabilidade (%)'] = df_final['Cluster'].apply(gerar_prob_coerente).round(1)
+                                            
                                         df_final.rename(columns={'cod_individuo': 'ID'}, inplace=True)
                                         st.session_state['df_res'] = df_final
                                     else:
@@ -252,33 +259,52 @@ else:
                         indice_selecionado = evento.selection.rows[0]
                         cliente = df_tabela.iloc[indice_selecionado]
 
-                        # FUNÇÕES DE EXTRAÇÃO INTELIGENTE (Tratam One-Hot Encodings e Valores Númericos)
+                        # FUNÇÕES DE EXTRAÇÃO INTELIGENTE (Robustas para Dummies e Nomes Variados)
                         def get_num(linha, chaves):
-                            for c in linha.index:
-                                cstr = str(c).lower()
-                                if any(k in cstr for k in chaves) and "valor" not in cstr:
-                                    v = linha[c]
-                                    if pd.notna(v) and str(v).strip() != "":
-                                        if isinstance(v, (int, float)): return str(int(v))
-                                        return str(v)
+                            # 1. Busca Exata (Prioridade máxima para evitar pegar colunas booleanas erradas)
+                            for k in chaves:
+                                for c in linha.index:
+                                    if k == str(c).lower():
+                                        v = linha[c]
+                                        if pd.notna(v) and str(v).strip() != "":
+                                            if isinstance(v, (int, float)): return str(int(v))
+                                            return str(v)
+                            # 2. Busca Parcial Segura
+                            for k in chaves:
+                                for c in linha.index:
+                                    cstr = str(c).lower()
+                                    if k in cstr and "valor" not in cstr and "id" not in cstr:
+                                        v = linha[c]
+                                        if pd.notna(v) and str(v).strip() != "":
+                                            if isinstance(v, (int, float)): return str(int(v))
+                                            return str(v)
                             return "Dado não encontrado"
 
                         def get_text_or_dummy(linha, chaves):
-                            # 1. Procura valor em texto direto na coluna
-                            for c in linha.index:
-                                cstr = str(c).lower()
-                                if any(k in cstr for k in chaves) and "valor" not in cstr:
-                                    v = linha[c]
-                                    if isinstance(v, str) and not v.isnumeric() and v.lower() not in ['true', 'false', 'nan']:
-                                        return v
-                            # 2. Procura variáveis Dummy (onde a resposta é 1)
-                            for c in linha.index:
-                                cstr = str(c).lower()
-                                if any(k in cstr for k in chaves) and "valor" not in cstr:
-                                    v = linha[c]
-                                    if v == 1 or v == 1.0 or str(v).lower() == 'true':
-                                        nome_limpo = cstr.replace('tipo_', '').replace('cobertura_', '').replace('plano_', '')
-                                        return nome_limpo.replace('_', ' ').strip().title()
+                            # 1. Busca Exata Texto
+                            for k in chaves:
+                                for c in linha.index:
+                                    if k == str(c).lower():
+                                        v = linha[c]
+                                        if isinstance(v, str) and not v.isnumeric() and v.lower() not in ['true', 'false', 'nan']:
+                                            return v
+                            # 2. Busca Parcial Texto
+                            for k in chaves:
+                                for c in linha.index:
+                                    cstr = str(c).lower()
+                                    if k in cstr and "valor" not in cstr:
+                                        v = linha[c]
+                                        if isinstance(v, str) and not v.isnumeric() and v.lower() not in ['true', 'false', 'nan']:
+                                            return v
+                            # 3. Tratamento de Colunas Dummies (One-Hot Encodings 0 ou 1)
+                            for k in chaves:
+                                for c in linha.index:
+                                    cstr = str(c).lower()
+                                    if k in cstr and "valor" not in cstr:
+                                        v = linha[c]
+                                        if v == 1 or v == 1.0 or str(v).lower() == 'true':
+                                            nome = cstr.replace('tipo_', '').replace('cobertura_', '').replace('plano_', '').replace('genero_', '').replace('sexo_', '')
+                                            return nome.replace('_', ' ').strip().title()
                             return "Dado não encontrado"
 
                         # Extração
@@ -503,8 +529,7 @@ else:
             c_voltar, _ = st.columns([2, 7])
             with c_voltar:
                 if st.button("← Voltar para a Central", key="voltar_home_mod"): 
-                    st.session_state['pagina'] = "Home"
-                    st.rerun()
+                    st.session_state['pagina'] = "Home"; st.rerun()
             
             if 'df_res' not in st.session_state or st.session_state['df_res'].empty:
                 st.write("<br><br>", unsafe_allow_html=True)
